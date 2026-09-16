@@ -170,7 +170,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             __html: `
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
-    navigator.serviceWorker.register('/sw.js').catch(function(){});
+    // updateViaCache: 'none' —— 强制浏览器不走 HTTP 缓存去取 sw.js 本身。
+    // 默认情况下 SW 脚本受 HTTP 缓存影响，可能长时间拿不到新版本，
+    // 于是“新 SW 里的缓存清理与修复”迟迟不生效。
+    navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).catch(function(){});
   });
 }
 `,
