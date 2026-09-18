@@ -7,32 +7,45 @@ export default function PostBody({ html, slug }: { html: string; slug: string })
 
   /* 块级公式太宽时缩到刚好放下。
 
+     手机与桌面差很多，这是关键：
+       桌面可用宽 ≈ 768px，一条 1000px 的公式缩到 0.77 就够；
+       手机可用宽 ≈ 340px，同一条公式要缩到 0.34。
+     所以「低于下限就不缩」这条策略在手机上会直接放弃 ——
+     桌面看着修好了，手机却毫无变化。
+
+     现在改成：尽力缩到下限为止（target = max(need, FLOOR)），
+     缩不到的部分交给横向滚动；并且给仍然超宽的盒子加 is-scrollable，
+     由 CSS 在右缘画一道渐隐，提醒读者可以往左滑
+     （移动端不显示滚动条，没有这个提示就跟被截断一样）。
+
      为什么不用 transform: scale：.katex-display 同时是 overflow-x:auto 的裁剪容器，
      CSS 的顺序是「先按容器宽度裁剪，再对结果整体缩放」——被裁掉的右半截
      不会因为缩放重新出现。目标选错了。
 
      为什么改 font-size：KaTeX 内部全用 em 计量，改字号会真实改变布局宽度，
-     于是不再有溢出、不需要裁剪，容器高度也自然跟着收（省掉负边距补偿）。
+     于是不再有溢出、不需要裁剪，容器高度也自然跟着收。
 
      为什么必须用容器自己的 scrollWidth 量：它直接给出内容溢出后的真实宽度，
      不受子元素自身 width / display 规则影响。
-     曾经改量子元素的 getBoundingClientRect().width —— 一旦它的 width: max-content
+     曾经量子元素的 getBoundingClientRect().width —— 一旦它的 width: max-content
      没生效（样式加载顺序变了、被覆盖了），量到的就是容器宽、永远判为「放得下」，
-     于是什么都不做。这正是前几版默默失效的原因。
+     于是什么都不做。这是前几版默默失效的另一个原因。
 
-     缩太多会读不清，所以给了下限，低于下限就不缩，交给横向滚动兜底。
-     每个公式盒会写上 data-formula-fit 标记（ok / fit:0.82 / skip:0.41 / failed），
-     在开发者工具里一看属性就知道它走了哪条分支。 */
+     每个公式盒会写 data-formula-fit 标记，开发者工具里一看属性就知道走了哪条分支。 */
   useEffect(() => {
     const root = ref.current;
     if (!root) return;
-    const MIN_RATIO = 0.6;
+    /* 缩放下限。低于这个比例公式已经难认，宁可让它横向滑动。
+       取 0.5：手机上大多数超宽公式能缩到这个量级并基本放下；
+       再往下调（如 0.34）虽能完全放下，但字号已经小到读不清。 */
+    const FLOOR = 0.5;
     let raf = 0;
     const timers: ReturnType<typeof setTimeout>[] = [];
 
     const fitOne = (box: HTMLElement) => {
       // 先复位，再量原始尺寸；否则会拿上一次的结果反复缩小
       box.style.fontSize = "";
+      box.classList.remove("is-scrollable");
 
       const cs = getComputedStyle(box);
       const padL = parseFloat(cs.paddingLeft) || 0;
@@ -48,11 +61,9 @@ export default function PostBody({ html, slug }: { html: string; slug: string })
       }
 
       const base = parseFloat(cs.fontSize) || 16;
-      let ratio = avail / content;
-      if (ratio < MIN_RATIO) {
-        box.dataset.formulaFit = `skip:${ratio.toFixed(2)}`;
-        return;
-      }
+      const need = avail / content;
+      // 尽力缩，但不小于下限
+      let ratio = Math.max(need, FLOOR);
 
       // 宽度与字号近似成正比，但取整会带来误差，迭代几次收敛
       for (let i = 0; i < 5; i++) {
@@ -62,12 +73,15 @@ export default function PostBody({ html, slug }: { html: string; slug: string })
           box.dataset.formulaFit = `fit:${ratio.toFixed(2)}`;
           return;
         }
-        ratio *= avail / w;
-        if (ratio < MIN_RATIO) break;
+        if (ratio <= FLOOR + 0.001) break; // 已到下限，无法再小
+        ratio = Math.max(ratio * (avail / w), FLOOR);
       }
-      // 迭代完仍放不下：恢复原样，交给横向滚动，不留一点被裁的溢出
-      box.style.fontSize = "";
-      box.dataset.formulaFit = "failed";
+
+      // 己经缩到下限仍然放不下：保持缩后的字号（仍然可读），剩下的横向滑动。
+      // 若连下限都没用上（理论上不会走到），则回到原样。
+      box.style.fontSize = `${(base * Math.max(need, FLOOR)).toFixed(2)}px`;
+      box.classList.add("is-scrollable");
+      box.dataset.formulaFit = `scroll:${Math.max(need, FLOOR).toFixed(2)}`;
     };
 
     const fit = () => {

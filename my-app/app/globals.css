@@ -2107,6 +2107,25 @@ html[data-motion="off"] .footer-link:hover .footer-link-icon {
   margin-right: auto;
   white-space: nowrap;
 }
+
+/* 已经缩到下限、仍需横向滑动的公式：右缘画一道渐隐。
+
+   为什么必须加：移动端不显示滚动条，公式右侧被裁掉时读者根本看不出
+   「可以往左滑」，观感与「内容被截断」完全一样。
+   这道渐隐就是唯一的滑动提示。
+
+   注意 background-attachment 必须是 scroll（默认值）：它让背景相对元素的
+   边框盒固定、不随内容滚动，所以渐隐会一直贴在右缘。
+   选择器特异性 0,3,0，压得住 html.dark .katex-display 的 background 简写。 */
+.article .katex-display.is-scrollable {
+  background-image: linear-gradient(
+    to left,
+    color-mix(in srgb, var(--muted) 22%, transparent),
+    transparent 28px
+  );
+  background-repeat: no-repeat;
+  background-position: right center;
+}
 .katex { font-size: 1.05em; }
 /* 夜间模式：公式文字保持深色（KaTeX 默认黑色），公式块加亮底卡片增强对比 */
 html.dark .katex-display {
@@ -2567,6 +2586,8 @@ html.dark .katex-error { color: #fca5a5; }
     overflow: visible !important;
     max-width: none !important;
   }
+  /* 打印时不存在横向滑动，右缘的「可滑」渐隐也就不该出现 */
+  .article .katex-display.is-scrollable { background-image: none !important; }
 
   /* 引用块、列表 */
   .article blockquote {
