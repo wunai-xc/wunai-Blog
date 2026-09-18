@@ -97,6 +97,10 @@ function rehypeImages(post: Post) {
         node.properties = node.properties || {};
         node.properties.loading = "lazy";
         node.properties.decoding = "async";
+        /* 不向图片所在服务器泄露本站地址。
+           不少图床与站点按 Referer 做防盗链，带上来源会被直接拒绝，
+           表现就是「外链图片怎么都不显示」；no-referrer 能避掉这一类。 */
+        node.properties.referrerPolicy = "no-referrer";
         if (!src.startsWith("http") && !src.startsWith("/")) {
           node.properties.src = `/${post.lang}/posts/${post.slug}/${src}`;
         }

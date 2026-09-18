@@ -105,6 +105,30 @@ html[data-motion="off"] *::after {
   scroll-behavior: auto !important;
 }
 
+/* ===== 正文图片加载失败时的占位块 =====
+   比浏览器默认的裂图图标多两件事：说明这是「图没加载出来」，并把 alt 文字显示出来
+   （本站图片的 alt 写得很具体，往往一眼就能看出缺的是哪张图） */
+.figure-missing {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 96px;
+  margin: 1em 0;
+  padding: 16px;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--muted);
+  border: 1px dashed color-mix(in srgb, var(--muted) 45%, transparent);
+  background: color-mix(in srgb, var(--muted) 6%, transparent);
+}
+.figure-missing::before {
+  content: "图片未找到";
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+}
+
 /* 页面进入后台（切 App / 切标签页）：暂停全站 CSS 动画。
    后台标签页仍然可能存在合成器侧的持续开销，而本站有若干无限循环动画
    （滑动图标上下浮动、进度圆点脉冲、加载图标旋转等）；

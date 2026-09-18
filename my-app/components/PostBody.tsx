@@ -82,6 +82,29 @@ export default function PostBody({ html, slug }: { html: string; slug: string })
     const el = ref.current;
     if (!el) return;
 
+    /* 正文图片加载失败时换成明确的占位块。
+       默认的裂图图标既难看也说不清原因（404？防盗链？路径写错？），
+       换成带 alt 文字的占位块后，读者与作者都能一眼看出是「图没加载出来」。
+       常见原因：文件根本没上传（路径指向不存在的目录）、外链图床挂了或禁外链。 */
+    el.querySelectorAll("img").forEach((img) => {
+      const markMissing = () => {
+        if (img.dataset.missing) return;
+        img.dataset.missing = "1";
+        const ph = document.createElement("div");
+        ph.className = "figure-missing";
+        ph.textContent = img.getAttribute("alt") || "图片未能加载";
+        ph.title = `图片加载失败：${img.getAttribute("src") || ""}`;
+        img.replaceWith(ph);
+      };
+      // 已加载完但尺寸为 0：多数浏览器对 404/decode 失败就是这个状态，
+      // 此时 error 事件已经错过，不会再触发
+      if (img.complete) {
+        if (img.naturalWidth === 0) markMissing();
+        return;
+      }
+      img.addEventListener("error", markMissing, { once: true });
+    });
+
     // 代码复制按钮
     el.querySelectorAll("pre").forEach((pre) => {
       if (pre.querySelector(".copy-btn")) return;
