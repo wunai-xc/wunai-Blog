@@ -5,49 +5,69 @@ import { useEffect, useRef } from "react";
 export default function PostBody({ html, slug }: { html: string; slug: string }) {
   const ref = useRef<HTMLDivElement>(null);
 
-  /* 长公式缩到刚好放下。
+  /* 块级公式太宽时缩到刚好放下。
 
-     为什么不用 transform: scale —— 试过，错的：
-     .katex-display 同时是 overflow-x: auto 的裁剪容器，而 CSS 的顺序是
-     「先按容器宽度裁剪，再对结果整体缩放」。也就是说被裁掉的右半截
-     不会因为缩放而重新出现，公式照样看不全。
+     为什么不用 transform: scale：.katex-display 同时是 overflow-x:auto 的裁剪容器，
+     CSS 的顺序是「先按容器宽度裁剪，再对结果整体缩放」——被裁掉的右半截
+     不会因为缩放重新出现。目标选错了。
 
-     改用缩小字号：KaTeX 内部全用 em 计量，改 font-size 会真实改变布局宽度，
-     于是不再有溢出、不需要裁剪，容器高度也自然跟着收（无需负外边距补偿）。
-     缩得太多会读不清，所以给了下限，低于下限就不缩、退回横向滚动。 */
+     为什么改 font-size：KaTeX 内部全用 em 计量，改字号会真实改变布局宽度，
+     于是不再有溢出、不需要裁剪，容器高度也自然跟着收（省掉负边距补偿）。
+
+     为什么必须用容器自己的 scrollWidth 量：它直接给出内容溢出后的真实宽度，
+     不受子元素自身 width / display 规则影响。
+     曾经改量子元素的 getBoundingClientRect().width —— 一旦它的 width: max-content
+     没生效（样式加载顺序变了、被覆盖了），量到的就是容器宽、永远判为「放得下」，
+     于是什么都不做。这正是前几版默默失效的原因。
+
+     缩太多会读不清，所以给了下限，低于下限就不缩，交给横向滚动兜底。
+     每个公式盒会写上 data-formula-fit 标记（ok / fit:0.82 / skip:0.41 / failed），
+     在开发者工具里一看属性就知道它走了哪条分支。 */
   useEffect(() => {
     const root = ref.current;
     if (!root) return;
-    const MIN_RATIO = 0.55;
+    const MIN_RATIO = 0.6;
     let raf = 0;
+    const timers: ReturnType<typeof setTimeout>[] = [];
 
     const fitOne = (box: HTMLElement) => {
-      const inner = box.firstElementChild as HTMLElement | null;
-      if (!inner) return;
-      // 先回到原始字号，再量真实宽度；否则会拿上一次的结果反复缩小
-      inner.style.fontSize = "";
-      // clientWidth 含内边距（暗色主题下左右各 16px），要扣掉才是可用内容宽
+      // 先复位，再量原始尺寸；否则会拿上一次的结果反复缩小
+      box.style.fontSize = "";
+
       const cs = getComputedStyle(box);
-      const avail =
-        box.clientWidth - parseFloat(cs.paddingLeft || "0") - parseFloat(cs.paddingRight || "0");
-      if (avail <= 0) return;
-      const full = inner.getBoundingClientRect().width;
-      if (full <= avail + 1) return; // 放得下，什么都不做
+      const padL = parseFloat(cs.paddingLeft) || 0;
+      const padR = parseFloat(cs.paddingRight) || 0;
+      const avail = box.clientWidth - padL - padR;
+      if (avail <= 1) return;
 
-      const base = parseFloat(getComputedStyle(inner).fontSize) || 16;
-      let ratio = avail / full;
-      if (ratio < MIN_RATIO) return; // 缩太小反而读不清，交给横向滚动
+      // scrollWidth 含内边距，减掉才是内容自身宽度
+      const content = box.scrollWidth - padL - padR;
+      if (content <= avail + 1) {
+        box.dataset.formulaFit = "ok";
+        return;
+      }
 
-      // 宽度与字号成正比，但会受取整影响，迭代几次收敛
-      for (let i = 0; i < 4; i++) {
-        inner.style.fontSize = `${(base * ratio).toFixed(2)}px`;
-        const w = inner.getBoundingClientRect().width;
-        if (w <= avail + 0.5) return; // 收敛，收工
+      const base = parseFloat(cs.fontSize) || 16;
+      let ratio = avail / content;
+      if (ratio < MIN_RATIO) {
+        box.dataset.formulaFit = `skip:${ratio.toFixed(2)}`;
+        return;
+      }
+
+      // 宽度与字号近似成正比，但取整会带来误差，迭代几次收敛
+      for (let i = 0; i < 5; i++) {
+        box.style.fontSize = `${(base * ratio).toFixed(2)}px`;
+        const w = box.scrollWidth - padL - padR;
+        if (w <= avail + 0.5) {
+          box.dataset.formulaFit = `fit:${ratio.toFixed(2)}`;
+          return;
+        }
         ratio *= avail / w;
         if (ratio < MIN_RATIO) break;
       }
-      // 迭代完仍放不下：宁可退回横向滚动，也不留一点溢出被裁掉
-      if (inner.getBoundingClientRect().width > avail + 0.5) inner.style.fontSize = "";
+      // 迭代完仍放不下：恢复原样，交给横向滚动，不留一点被裁的溢出
+      box.style.fontSize = "";
+      box.dataset.formulaFit = "failed";
     };
 
     const fit = () => {
@@ -60,20 +80,37 @@ export default function PostBody({ html, slug }: { html: string; slug: string })
 
     schedule();
     // KaTeX 字体是 font-display: block，字体到位前后度量会变，必须重量
-    document.fonts?.ready.then(schedule).catch(() => {});
-    // 外链的 katex.min.css 也可能晚于本脚本到达，再补两次
-    const t1 = setTimeout(schedule, 400);
-    const t2 = setTimeout(schedule, 1500);
+    document.fonts?.ready.then(schedule).catch(schedule);
+    // 外链的 katex.min.css 也可能晚于本脚本到达，再补几次
+    [300, 1200, 3000].forEach((ms) => timers.push(setTimeout(schedule, ms)));
+
     window.addEventListener("resize", schedule);
-    // 字号调节是改 <html data-font-scale>，不触发 resize，单独盯这个属性
+
+    /* 只盯「宽度」变化，不盯高度——防死循环：
+       fitOne 会改字号 → 容器高度跟着变 → 若按高度触发又会调 fitOne → 无限循环。
+       而改字号不会改变容器宽度（它总是填满父级的块），拿宽度做闸门才安全。 */
+    let lastW = root.clientWidth;
+    const ro = new ResizeObserver(() => {
+      const w = root.clientWidth;
+      if (w === lastW) return;
+      lastW = w;
+      schedule();
+    });
+    ro.observe(root);
+
+    // 字号调节改的是 <html data-font-scale>，阅读宽度改的是 data-width，
+    // 两者都不触发 resize，得单独盯
     const mo = new MutationObserver(schedule);
-    mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-font-scale"] });
+    mo.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-font-scale", "data-width"],
+    });
 
     return () => {
       cancelAnimationFrame(raf);
-      clearTimeout(t1);
-      clearTimeout(t2);
+      timers.forEach(clearTimeout);
       window.removeEventListener("resize", schedule);
+      ro.disconnect();
       mo.disconnect();
     };
   }, [html]);

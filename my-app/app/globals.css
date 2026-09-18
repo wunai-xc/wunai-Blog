@@ -2061,37 +2061,29 @@ html[data-motion="off"] .footer-link:hover .footer-link-icon {
   color: var(--muted);
 }
 
-/* ===== KaTeX ===== */
-/* 块级公式必须**自己**具备「不超宽 + 可横向滚动」，不能依赖卡片去裁。
+/* ===== KaTeX 块级公式：不许溢出卡片 =====
 
-   ① display: block 必须显式写
-   KaTeX 自己的样式表来自 CDN（jsdelivr），其中才有 .katex-display{display:block}。
-   而 overflow 对 inline 框无效 —— 这份 CDN 样式一旦没生效（离线首次访问、
-   CDN 不可达、被拦），.katex-display 会退化成 <span> 的默认 inline，
-   overflow-x: auto 就整个失效。
+   关键事实：KaTeX 输出的 <span class="katex-display"> 是 **inline 元素**
+   （否则它自己的 CSS 不需要专门写 display:block）。而 overflow / max-width
+   这些属性对 **非替换 inline 框全部无效** —— 也就是说，只要 display:block
+   没生效，下面写的 overflow-x: auto 形同虚设，超长公式就会直接顶出卡片，
+   表现正是截图里那样。
 
-   ② position: relative
-   KaTeX 内部有绝对定位元素（.katex svg、.tag 等）。若本元素是 static，
-   它们会以最近的定位祖先（.post-content）作包含块，跳出本元素的滚动裁剪。
+   所以这里用 .article .katex-display（特异性 0,2,0，高于 KaTeX 自带的 0,1,0）
+   + !important 把这三条钉死，不再依赖样式表加载顺序与 CDN 是否可达。
 
-   ③ 居中不能用 text-align: center
-   CDN 样式给的是 .katex-display>.katex{display:block;text-align:center}。
-   内容比容器宽时，text-align: center 会把两侧均分溢出 —— 左半截落在滚动起点
-   之前，永远滚不到。改用「自身收缩宽度 + margin:auto」：
-   装得下时自动居中；装不下时 auto 边距归零，从左边开始，右边可以正常滚。
-
-   ④ 但横向滚动只算兜底
-   首选方案在 components/PostBody.tsx：超宽时把它缩小到刚好放下。
-   用的是降低 font-size（KaTeX 内部全用 em，宽度会真实变小），
-   不是 transform: scale —— 本元素同时是 overflow-x 的裁剪容器，
-   而 CSS 是「先裁剪再缩放」，被裁掉的右半截不会因缩放重新出现。
-   下面的 overflow 与滚动条样式只在缩得过大（低于下限）时才会用上。 */
-.katex-display {
-  display: block;
-  position: relative;
-  max-width: 100%;
-  overflow-x: auto;
-  overflow-y: hidden;
+   另外两点：
+   · position: relative 必需 —— KaTeX 内部有绝对定位元素（.katex svg 等），
+     若本元素是 static，它们会以 .post-content 作包含块，跳出滚动裁剪。
+   · 居中不能用 text-align: center（KaTeX 自带的就是它）：内容超宽时会把溢出均分
+     到两侧，左半边落在滚动起点之前、永远滚不到。改用「内容宽 + auto 边距」，
+     装得下居中、装不下左对齐（右侧可滚）。 */
+.article .katex-display {
+  display: block !important;
+  position: relative !important;
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
   -webkit-overflow-scrolling: touch;
   padding: 8px 0;
   margin: 1em 0;
@@ -2106,11 +2098,11 @@ html[data-motion="off"] .footer-link:hover .footer-link-icon {
 .katex-display::-webkit-scrollbar-thumb:hover {
   background: color-mix(in srgb, var(--muted) 65%, transparent);
 }
-/* 内层按内容收缩 + auto 边距：装得下时居中，装不下时自动左对齐（右侧可滚） */
-.katex-display > .katex {
-  display: block;
-  width: max-content;
-  max-width: none;
+/* 内层按内容收缩 + auto 边距：装得下时居中，装不下时左对齐（右侧可滚） */
+.article .katex-display > .katex {
+  display: block !important;
+  width: max-content !important;
+  max-width: none !important;
   margin-left: auto;
   margin-right: auto;
   white-space: nowrap;
@@ -2567,8 +2559,11 @@ html.dark .katex-error { color: #fca5a5; }
   .mermaid, .echarts, .graphviz, .abc { overflow: visible !important; }
   /* PDF 里没法横向滚动：若保留 overflow-x: auto，超长公式只会印出中间一段，
      另一半直接丢内容。宁可让它压到页边，也不能截断。
-     同时去掉 overflow-y: hidden，避免把 tall 公式的上下标切掉。 */
-  .katex-display {
+     同时去掉 overflow-y: hidden，避免把 tall 公式的上下标切掉。
+     选择器必须与屏幕规则同特异性（.article .katex-display）才能压住它的 !important
+     —— 同特异性下后出现的胜出，而本段在文件里靠后。 */
+  .article .katex-display {
+    display: block !important;
     overflow: visible !important;
     max-width: none !important;
   }
