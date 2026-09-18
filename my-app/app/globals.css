@@ -2084,9 +2084,17 @@ html[data-motion="off"] .footer-link:hover .footer-link-icon {
   max-width: 100% !important;
   overflow-x: auto !important;
   overflow-y: hidden !important;
-  -webkit-overflow-scrolling: touch;
   padding: 8px 0;
   margin: 1em 0;
+  /* 触屏滑动要可靠：
+     · overscroll-behavior-x: contain —— 滑到头时不把滑动传给外层，
+       免得触发浏览器的侧滑返回（iOS 左缘右滑 = 后退，很容易误触）。
+     · -webkit-overflow-scrolling: touch —— 旧 iOS 上的惯性滚动（现代版默认就有）。
+     注意不要写 touch-action: pan-x：那会把本元素上的**纵向**手势也禁掉，
+     手指落在公式上往下拖就滑不动页面了，代价比收益大。
+     默认的 auto 会自己判定主轴，横拖已经是横向滚动了。 */
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
   /* 细滚动条：桌面端给一个「这里能横向拖」的提示 */
   scrollbar-width: thin;
 }
