@@ -168,6 +168,11 @@ html[data-page-hidden] *::after {
   --reading-bg: rgba(255, 251, 251, 0.965);
   /* 正文栏宽（设置页可切） */
   --post-width: 800px;
+  /* 顶栏高度。
+     目录按钮 / 粘性标题 / 首屏高度都挂在它下面，
+     改顶栏内边距或 logo 字号时只改这一个值即可。
+     取值为品牌区两行（logo + 小字行）加上下内边距的实测高度。 */
+  --header-h: 90px;
   --reading-border: rgba(60, 20, 20, 0.07);
   --reading-inner-glow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
   --reading-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 28%);
@@ -371,7 +376,7 @@ a:hover { text-decoration: underline; }
 }
 
 /* 全局：按钮、导航、标签等单行元素不换行，保持从左到右 */
-button, label, .nav a, .icon-btn, .tag, .term-item,
+button, label, .menu-link, .icon-btn, .tag, .term-item,
 .pagination a, .copy-btn, .pinned-badge, .author-badge,
 .breadcrumbs a, .toc a, .post-nav a, .post-nav .title, .post-nav .label,
 .post-meta > span, .post-card .meta > span, .archive-date {
@@ -399,23 +404,207 @@ html[data-font-scale="1.30"] { font-size: clamp(16.9px, 3.38vw, 20.8px); }
 .container { max-width: 760px; margin: 0 auto; padding: 0 16px; }
 .container-wide { max-width: 1280px; margin: 0 auto; padding: 0 16px; }
 
-/* ===== Header ===== */
+/* ===== Header：三区导航栏 =====
+   结构：[主题切换] 大号 logo▌ + 小字行 | 导航菜单 | 友链 | 图片区
+   视觉仍是本站的简白：白底、一根细底边、直角，hover 用本站主色。 */
 .site-header {
   position: sticky; top: 0; z-index: 50;
-  background: color-mix(in srgb, var(--bg) 85%, transparent);
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--border);
 }
-.header-inner {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 12px;
-  height: 56px; max-width: 1280px; margin: 0 auto; padding: 0 16px;
+.navbar {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 24px;
   min-width: 0;
+  /* 高度固定为 --header-h：这样该变量与实际顶栏高永远一致，
+     粘性标题 / 目录按钮 / 首屏高度都拿它定位，不会错位。
+     内容（品牌两行）在固定高内居中，因此不受字号微调影响。 */
+  height: var(--header-h);
+}
+/* 各分区之间用竖线分隔，保持简白的轻量感（不做粗野风的粗框） */
+.menu, .friends, .header-tools-li {
+  display: flex;
+  align-items: center;
+  border-left: 1px solid var(--border);
+}
+
+/* ---------- 左：品牌区 ---------- */
+.brand {
+  display: grid;
+  grid-template-columns: 44px auto;
+  column-gap: 12px;
+  align-content: center;
+  padding: 0 20px 0 0;
+  flex: 0 0 auto;
+  min-width: 0;
+}
+.brand-switch { grid-column: 1; grid-row: 1; display: flex; align-items: center; }
+.brand-text { grid-column: 2; grid-row: 1; min-width: 0; }
+
+.logo-link { display: inline-block; text-decoration: none; }
+.logo {
+  display: inline-flex;
+  align-items: center;
+  color: var(--fg);
+  font-size: clamp(1.5rem, 3.4vw, 2.15rem);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+.logo-link:hover .logo { color: var(--accent); text-decoration: none; }
+
+/* logo 右侧的闪烁光标（参考稿的标志性细节） */
+.cursor {
+  display: inline-block;
+  width: 3px;
+  height: 0.78em;
+  margin-left: 6px;
+  vertical-align: -0.06em;
+  background: currentColor;
+  animation: cursor-blink 1.05s step-end infinite;
+}
+@keyframes cursor-blink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0; }
+}
+.cursor.is-paused { animation-play-state: paused; }
+
+/* 小字行：左「wunai是谁？About……」，右「all posts →」 */
+.tagline-row {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 6px;
+  white-space: nowrap;
+}
+.tagline { font-size: 11px; color: var(--muted); }
+.tagline a {
+  color: var(--fg);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.tagline a:hover { color: var(--accent); }
+.all-posts {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg);
+  white-space: nowrap;
+}
+.all-posts:hover { color: var(--accent); text-decoration: underline; }
+
+/* ---------- 中：导航菜单 ---------- */
+.menu {
+  gap: 2px;
+  padding: 0 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+  min-width: 0;
+}
+.menu::-webkit-scrollbar { display: none; }
+.menu-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 11px;
+  font-size: 0.9rem;
+  color: var(--fg);
+  opacity: 0.85;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.menu-link:hover {
+  background: var(--card);
+  opacity: 1;
+  text-decoration: none;
+}
+.menu-link svg { display: block; flex-shrink: 0; }
+
+/* ---------- 中：友链 ---------- */
+.friends { padding: 0 12px; flex: 0 0 auto; }
+.friends-link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 8px 12px;
+  color: var(--fg);
+  white-space: nowrap;
+  border-radius: 0;
+}
+.friends-link:hover { background: var(--card); text-decoration: none; }
+.friends-icon { display: block; flex-shrink: 0; }
+.friends-label {
+  font-size: 11px;
+  line-height: 1;
+  color: var(--muted);
+}
+.friends-link:hover .friends-label { color: var(--accent); }
+
+/* ---------- 右：工具栏 + 图片区 ---------- */
+.header-tools-li { padding: 0 12px; flex: 0 0 auto; }
+
+/* 图片区：宽度固定、高度跟随导航栏拉伸。
+   目前是 CSS 背景 + 两道斜白条（参考稿的装饰做法）；
+   想换成真实图片，把下面的 background 换成 url(...) 即可。 */
+.image-placeholder {
+  position: relative;
+  width: 240px;
+  flex: 0 0 auto;
+  overflow: hidden;
+  border-left: 1px solid var(--border);
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--accent) 8%, var(--bg)) 0%,
+    color-mix(in srgb, var(--accent) 3%, var(--bg)) 100%);
+}
+.image-placeholder::before,
+.image-placeholder::after {
+  content: "";
+  position: absolute;
+  top: -40%;
+  width: 78%;
+  height: 180%;
+  background: color-mix(in srgb, var(--bg) 70%, transparent);
+  transform: skewX(-18deg);
+  pointer-events: none;
+}
+.image-placeholder::before { left: -70%; }
+.image-placeholder::after { right: -70%; }
+
+/* ---------- 入场：级联淡入（渐进增强） ----------
+   默认可见；JS 就绪后加 .fade-ready 隐藏，再逐个加 .is-visible 播放。 */
+[data-fade] {
+  transition: opacity 0.55s cubic-bezier(0.22, 0.8, 0.22, 1),
+              transform 0.55s cubic-bezier(0.22, 0.8, 0.22, 1);
+  will-change: opacity, transform;
+}
+[data-fade].fade-ready { opacity: 0; transform: translateY(-8px); }
+[data-fade].is-visible { opacity: 1; transform: translateY(0); }
+@media (prefers-reduced-motion: reduce) {
+  [data-fade], [data-fade].fade-ready {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+  .cursor { animation: none; }
 }
 
 /* ===== 可交互按钮：SVG 滤镜动效 ===== */
 /* 全局按钮基类：统一 hover 液态扭曲 + 辉光 + 点击深度 + 涟漪 */
-.logo, .nav a, .icon-btn, .tag, .term-item, .post-nav a,
+.menu-link, .icon-btn, .tag, .term-item, .post-nav a,
 .pagination a, .copy-btn, .pinned-badge, .author-badge,
 .search-box, .toc a, .breadcrumbs a {
   position: relative;
@@ -429,7 +618,7 @@ html[data-font-scale="1.30"] { font-size: clamp(16.9px, 3.38vw, 20.8px); }
 }
 
 /* Hover: SVG 液态滤镜 + 微浮起 + 辉光 */
-.logo:hover, .nav a:hover, .icon-btn:hover,
+.menu-link:hover, .icon-btn:hover,
 .tag:hover, .term-item:hover, .post-nav a:hover,
 .pagination a:hover, .copy-btn:hover,
 .toc a:hover, .breadcrumbs a:hover {
@@ -439,7 +628,7 @@ html[data-font-scale="1.30"] { font-size: clamp(16.9px, 3.38vw, 20.8px); }
 }
 
 /* Active: 深度下陷 + 涟漪 */
-.logo:active, .nav a:active, .icon-btn:active,
+.menu-link:active, .icon-btn:active,
 .tag:active, .term-item:active, .post-nav a:active,
 .pagination a:active, .copy-btn:active {
   filter: url(#filter-depth);
@@ -458,29 +647,13 @@ html[data-font-scale="1.30"] { font-size: clamp(16.9px, 3.38vw, 20.8px); }
 }
 
 /* Focus 键盘可达性：辉光 + 轮廓 */
-.logo:focus-visible, .nav a:focus-visible, .icon-btn:focus-visible,
+.menu-link:focus-visible, .icon-btn:focus-visible,
 .tag:focus-visible, .term-item:focus-visible, .post-nav a:focus-visible {
   filter: url(#filter-glow);
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
-.logo { font-weight: 700; font-size: 1.1rem; color: var(--fg); flex-shrink: 0; }
-.nav {
-  display: flex; align-items: center; gap: 2px;
-  flex: 1 1 auto; min-width: 0;
-  overflow-x: auto; overflow-y: hidden;
-  scrollbar-width: none; -ms-overflow-style: none;
-  -webkit-overflow-scrolling: touch;
-}
-.nav::-webkit-scrollbar { display: none; }
-.nav a {
-  padding: 6px 10px; border-radius: 0; color: var(--fg);
-  font-size: 0.9rem; opacity: 0.85;
-  flex-shrink: 0;
-}
-.nav a:hover { background: var(--card); text-decoration: none; opacity: 1; }
-.nav a.active { background: var(--card); opacity: 1; }
 .header-tools { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
 .icon-btn {
   background: none; border: none; cursor: pointer; color: var(--fg);
@@ -526,7 +699,7 @@ html[data-font-scale="1.30"] { font-size: clamp(16.9px, 3.38vw, 20.8px); }
 .home-hero {
   position: relative;
   min-height: calc(100vh - 56px);
-  min-height: calc(100svh - 56px);
+  min-height: calc(100svh - var(--header-h));
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
   text-align: center;
@@ -616,13 +789,13 @@ html[data-font-scale="1.30"] { font-size: clamp(16.9px, 3.38vw, 20.8px); }
   transition: opacity 1s var(--ease-silk), transform 1s var(--ease-silk);
 }
 .reveal.is-shown { opacity: 1; transform: none; }
-.home-posts { padding-bottom: 48px; scroll-margin-top: 72px; }
+.home-posts { padding-bottom: 48px; scroll-margin-top: calc(var(--header-h) + 16px); }
 
 /* ===== 首页「最近更新」（首屏与文章卡片之间） ===== */
 .changelog {
   margin: 8px 0 28px;
   /* 锚点定位时避开 sticky header */
-  scroll-margin-top: 72px;
+  scroll-margin-top: calc(var(--header-h) + 16px);
 }
 .changelog-head {
   font-size: 0.78rem;
@@ -1869,22 +2042,21 @@ html.dark .author-badge.ai { background: #450a0a; color: #fca5a5; }
   100% { transform: scale(1.8); opacity: 0; }
 }
 
-/* ===== 浮动导航响应式 ===== */
+/* ===== 浮动导航响应式 =====
+   注意：这里的 top 一律挂在 --header-h 上，改顶栏高度时不需要动本段。 */
 @media (max-width: 768px) {
-  /* 移动端 header 高 52px：sticky-heading 紧贴 header 底部，toc-fab 在 36px 高的 bar 内垂直居中 */
-  .sticky-heading { top: 52px; padding: 0 16px 0 48px; }
-  .toc-fab { left: 8px; top: 55px; width: 30px; height: 30px; border-radius: 0; }
+  .sticky-heading { padding: 0 16px 0 48px; }
+  .toc-fab { left: 8px; width: 30px; height: 30px; border-radius: 0; }
   .hb-icon { width: 14px; height: 10px; }
-  .toc-panel { left: 8px; top: 90px; width: 220px; }
+  .toc-panel { left: 8px; width: 220px; }
   .scroll-rail { right: 4px; width: 22px; }
   .scroll-rail-pct { font-size: 0.55rem; }
   .back-to-top { width: 40px; height: 40px; right: 12px; bottom: 12px; }
 }
 @media (max-width: 480px) {
-  /* 小屏 header 高 48px */
-  .sticky-heading { top: 48px; padding: 0 14px 0 44px; }
-  .toc-fab { left: 6px; top: 51px; }
-  .toc-panel { left: 6px; top: 86px; }
+  .sticky-heading { padding: 0 14px 0 44px; }
+  .toc-fab { left: 6px; }
+  .toc-panel { left: 6px; }
   .scroll-rail { width: 18px; }
   .progress-dot-label { display: none; }
 }
@@ -2204,11 +2376,19 @@ html.dark .katex-error { color: #fca5a5; }
 
 /* ===== 响应式：平板（≤ 768px） ===== */
 @media (max-width: 768px) {
-  .header-inner { height: 52px; padding: 0 12px; gap: 8px; }
-  .logo { font-size: 1rem; }
-  .nav a { padding: 6px 8px; font-size: 0.85rem; }
+  /* 顶栏内边距与 logo 字号收紧，高度跟着变——两个变量必须同步改 */
+  :root { --header-h: 78px; }
+  .navbar { padding-left: 14px; }
+  .brand { padding-right: 14px; }
+  .menu { padding: 0 6px; }
+  .menu-link { padding: 6px 8px; font-size: 0.85rem; }
+  .friends { padding: 0 8px; }
+  .friends-link { padding: 7px 9px; }
+  .friends-label { font-size: 10px; }
+  .header-tools-li { padding: 0 8px; }
   .header-tools { gap: 2px; }
   .icon-btn { padding: 5px; font-size: 0.85rem; }
+  .image-placeholder { width: 140px; }
 
   .post-layout { padding: 12px 10px; }
   .post-card { padding: 16px; margin: 10px 0; }
@@ -2245,9 +2425,20 @@ html.dark .katex-error { color: #fca5a5; }
 
 /* ===== 响应式：手机（≤ 480px） ===== */
 @media (max-width: 480px) {
-  .header-inner { height: 48px; padding: 0 10px; gap: 6px; }
-  .logo { font-size: 0.95rem; }
-  .nav a { padding: 6px 7px; font-size: 0.8rem; }
+  :root { --header-h: 70px; }
+  /* 手机：图片区与工具栏先收起（低频），优先保住品牌与菜单 */
+  .navbar { padding-left: 10px; }
+  .brand { grid-template-columns: 36px auto; column-gap: 8px; padding-right: 10px; }
+  .brand-switch .icon-btn { padding: 4px; }
+  .tagline { font-size: 10px; }
+  .all-posts { font-size: 11px; }
+  .menu { padding: 0 4px; }
+  .menu-link { padding: 6px 7px; font-size: 0.8rem; gap: 4px; }
+  .friends { padding: 0 4px; }
+  .friends-link { padding: 5px 6px; }
+  .friends-icon { width: 1.15em; height: 1.15em; }
+  .image-placeholder { display: none; }
+  .header-tools-li { padding: 0 6px; }
   .icon-btn { padding: 4px; font-size: 0.8rem; }
 
   .container, .container-wide { padding: 0 10px; }
