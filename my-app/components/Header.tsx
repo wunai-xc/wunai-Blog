@@ -72,7 +72,7 @@ export default function Header({ lang }: { lang: Lang }) {
         <li className="image-placeholder" data-fade aria-hidden="true">
           {/* 用现在在用的站点图片；换成别的只需改 src */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/helloworld/wunailogo.png" alt="" />
+          <img src="/LOGO/wunai_xc.jpg" alt="" />
         </li>
       </ul>
 
