@@ -5,10 +5,13 @@ import { useEffect, useRef } from "react";
 /* ===== 可调参数（集中放置，便于后续调优） ===== */
 const MAX_DPR = 2; // 设备像素比上限：高分屏不做 3x 渲染，避免填充率爆炸
 const FRAME_MS = 1000 / 60; // 运动归一化基准（不同刷新率下手感一致）
-const BASE_SPACING = 26; // 网格间距（px）
-const NARROW_SPACING = 22; // 窄屏（< 640px）间距，点更密一些
+const BASE_SPACING = 20; // 网格间距（px）。越小越密；20 是手机与桌面都看得清又能察觉“网格感”的档位
+const NARROW_SPACING = 17; // 窄屏（< 640px）间距，点再密一些
 const NARROW_WIDTH = 640;
-const MAX_DOTS = 3000; // 网格点上限：超出则自动放大间距
+/* 网格点上限：超出则自动放大间距，防止大屏上点数爆炸。
+   间距调小后这个上限必须同步抬高，否则大屏会被自动改回稀疏的间距——
+   调间距等于白调。抬高后仍由它兜住极端分辨率。 */
+const MAX_DOTS = 4200;
 const POINTER_RADIUS_FACTOR = 5; // 影响半径 = 间距 × 该系数
 const POINTER_RADIUS_MIN = 120;
 const PUSH_PER_SPACING = 0.052; // 指针推力系数（× 间距）→ 与网格密度无关的手感
@@ -26,9 +29,11 @@ const REST_V2 = 0.0025;
    在此时窗内忽略它，否则抬指后点会被误当成"鼠标停在那里"而回不了位 */
 const TOUCH_GUARD_MS = 1000;
 
-/* 位移分 4 档：档位越高（被推得越远）越大、越亮，并转为强调色 */
+/* 位移分 4 档：档位越高（被推得越远）越大、越亮，并转为强调色。
+   档 0 就是静止点的亮度——它是全站背景的“底色”，调它等于整体调点深浅。
+   原值 0.3 在浅色底上偏显眼，且与下方点网格叠加后容易喧宾夺主，整体降到约六成。 */
 const BAND_EDGES = [0, 0.3, 0.55, 0.8, 1];
-const BAND_ALPHA = [0.3, 0.45, 0.6, 0.85];
+const BAND_ALPHA = [0.18, 0.3, 0.42, 0.6];
 const BAND_RADIUS = [1, 1.3, 1.6, 1.9];
 const BANDS = BAND_EDGES.length - 1;
 
