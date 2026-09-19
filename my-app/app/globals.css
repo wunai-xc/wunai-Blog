@@ -752,8 +752,12 @@ html {
 /* 吸附写在 <html> 上，而不是像常见做法那样另建一个 height:100vh 的内部滚动容器。
    原因：页脚（语言切换 / 设置入口）跟在首页之后，若让首页独占滚动，
    页脚会被永久挡住、读者根本够不到。
-   用 proximity 而不是 mandatory：mandatory 在某屏内容高于视口时会把页面「卡住」，
-   读者翻不到那屏的后半段，也滚不过最后一屏去够页脚。
+   用 proximity 而不是 mandatory：mandatory 要求滚动容器只能停在吸附点上，
+   而首页三屏之后还跟着页脚、页脚没有吸附点 —— 滚到第 3 屏起点后再往下
+   就会被弹回，页脚永远够不到。这跟屏高无关：只要最后一屏后面还有内容，
+   mandatory 就会把它封在外面。（曾按「三屏是否都装得下视口」判定后升级到
+   mandatory，正是漏了这一条；若首页卡片不足，第 3 屏会变矮、通过判定，
+   页脚随即被封死。）手感改由 components/HomeSnap.tsx 的辅助吸附提供。
    scroll-padding-top 让吸附位置落在 sticky 顶栏下方，而不是被顶栏压住。 */
 /* 用 :has() 把作用域限定在有 .home-pager 的页面（也就是首页）。
    不限定的话，scroll-padding-top 会连带影响文章页的锚点跳转——
@@ -761,18 +765,6 @@ html {
 html:has(.home-pager) {
   scroll-snap-type: y proximity;
   scroll-padding-top: var(--header-h);
-}
-
-/* 加强吸附：三屏都装得下视口时，HomeSnap 会把 html 的 data-snap 设为 strong，
-   这里升到 mandatory —— 最强的吸附强度。
-
-   为什么必须由 JS 判断，而不能直接写 mandatory：
-   mandatory 下滚动容器只能停在吸附点上，一旦某屏高于视口，
-   那一屏的中段就再也滚不到，读者会被卡在屏起点。
-   桌面三屏都放得下，可以强吸；手机上「随便看看」是单列、超过一屏，
-   那时维持 proximity，改由 HomeSnap 做「向前拉一把」的辅助吸附。 */
-html:has(.home-pager)[data-snap="strong"] {
-  scroll-snap-type: y mandatory;
 }
 
 .home-pager { display: flex; flex-direction: column; }

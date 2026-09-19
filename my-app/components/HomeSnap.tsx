@@ -3,91 +3,89 @@
 import { useEffect } from "react";
 
 /**
- * 首页吸附的「加力」逻辑。CSS 里默认是 `scroll-snap-type: y proximity`（温和）。
- * 本组件做两件事：
+ * 首页吸附的「加力」逻辑。CSS 里是 `scroll-snap-type: y proximity`。
  *
- * 1. **三屏都装得下视口时，切成 `mandatory`** —— 那是最强的吸附。
- *    之所以要先判断：mandatory 下滚动只能停在吸附点上，一旦某屏高于视口，
- *    那一屏的中段就再也滚不到，读者被卡在屏起点。所以只在「没有任何一屏溢出」时才敢开。
- *    实测桌面能过（三屏都放得下），手机上的「随便看看」是单列、明显超一屏，会走第 2 条。
+ * ⚠️ **这里刻意不用 `mandatory`，哪怕只是有条件地开。**
  *
- * 2. **放不下时保持 proximity，并做一次「向前拉一把」的辅助吸附**：
- *    滚动停稳后，若前方某屏的起点在半屏以内、且那一屏放得下，就平滑滚过去。
+ * mandatory 要求滚动容器**只能停在吸附点上**。而首页三屏之后还跟着页脚，
+ * 页脚没有吸附点 —— 于是滚到第 3 屏起点后，再往下就被判定为「不在吸附点上」
+ * 而被弹回，**页脚永远够不到**。
  *
- *    刻意**只向前、不向后**。向后拉有两个害处：
- *    · 把正在读长内容的读者拽回屏起点；
- *    · 在页面底部的页脚处把读者往上拽，导致页脚够不到 —— 这正是当初没有直接用
- *      mandatory 的原因，辅助吸附不能把它重新引入。
+ * 这与屏高无关：只要最后一屏后面还有内容，mandatory 就会把它封在外面。
+ * （曾经按「三屏是否都装得下视口」判定后升级到 mandatory，就是错的：
+ * 判定漏了「最后一屏之后还有页脚」这个条件。若卡片不足 6 张，第 3 屏会变矮、
+ * 通过判定，页脚随即被封死。）
  *
- * 尊重 `prefers-reduced-motion`：只做强度判定，不介入滚动。
+ * 所以加力靠两个**辅助吸附**实现，它们都只是「停稳后帮一把」，
+ * 不改变「滚动可以停在任意位置」这个前提，因此不会封住页脚：
+ *
+ *   1. 向前拉：停稳时若前方某屏的起点在半屏以内，就平滑滚过去。
+ *   2. 向后并：停稳时若已经略微越过某屏起点（在 14% 屏高以内），就并回去。
+ *
+ * 并且**靠近文档底部时完全不动手**，从机制上保证页脚可达。
  */
-const SETTLE_MS = 140; // 滚动停稳多久后判定为「停住了」
-const PULL = 0.45;     // 最多向前拉这么多个视口高（半屏以内）
+const SETTLE_MS = 130;   // 滚动停稳多久后判定为「停住」
+const PULL = 0.5;        // 向前拉：最多几个视口高
+const SNAP_BACK = 0.14;  // 向后并：越过吸附点多少以内才并回去
+const BOTTOM_GUARD = 1;  // 距文档底部不足这么多个视口高时，一律不介入
 
 export default function HomeSnap() {
   useEffect(() => {
-    const root = document.documentElement;
-    const pages = () => Array.from(document.querySelectorAll<HTMLElement>("[data-home-page]"));
+    const pages = () =>
+      Array.from(document.querySelectorAll<HTMLElement>("[data-home-page]"));
     const headerH = () =>
       document.querySelector(".site-header")?.getBoundingClientRect().height ?? 0;
 
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-    /* 三屏是否都装得下；只有装得下才敢用 mandatory */
-    const measure = () => {
-      const list = pages();
-      if (!list.length) return;
-      const availH = window.innerHeight - headerH();
-      const allFit = list.every((p) => p.getBoundingClientRect().height <= availH + 1);
-      root.dataset.snap = allFit ? "strong" : "soft";
-    };
-
-    measure();
-    // 字体就位前后屏高会变（KaTeX 字体、图片加载），补测两次
-    const t1 = window.setTimeout(measure, 400);
-    const t2 = window.setTimeout(measure, 1500);
-
-    if (reduced) {
-      return () => {
-        window.clearTimeout(t1);
-        window.clearTimeout(t2);
-        root.removeAttribute("data-snap");
-      };
-    }
+    if (reduced) return; // 尊重偏好：不介入滚动
 
     let settle = 0;
-    let pulling = false;
+    let locked = false;
 
     const assist = () => {
-      if (pulling) return;
-      // 已是 mandatory，浏览器自己会吸附，再插手只会互相打架
-      if (root.dataset.snap === "strong") return;
+      if (locked) return;
 
-      const list = pages();
       const availH = window.innerHeight - headerH();
+      if (availH <= 0) return;
+
       const y = window.scrollY;
+      const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+      // 守卫：进入文档末段就不再介入，页脚区域永远交给用户自己滚
+      if (maxScroll - y < availH * BOTTOM_GUARD) return;
 
       let target: number | null = null;
       let bestDist = Infinity;
-      for (const p of list) {
+
+      for (const p of pages()) {
         const r = p.getBoundingClientRect();
-        // 目标屏自己都放不下：吸过去只会让人看不到它的下半截
+        // 那一屏自己都放不下：吸过去只会让人看不到它的下半截
         if (r.height > availH + 1) continue;
         const top = y + r.top - headerH();
-        const d = top - y;
-        // 只考虑正前方的屏（d > 1），且在半屏以内
-        if (d > 1 && d <= availH * PULL && d < bestDist) {
-          bestDist = d;
-          target = top;
+        const d = top - y; // > 0 在前方，< 0 已越过
+
+        if (d > 1) {
+          // 前方且在半屏以内 → 拉过去
+          if (d <= availH * PULL && d < bestDist) {
+            bestDist = d;
+            target = top;
+          }
+        } else if (d > -availH * SNAP_BACK) {
+          // 刚越过一点点 → 并回去（这一步让吸附手感变「准」）
+          const back = -d;
+          // 跳过已经对齐（back≈0）的情况，否则会发起一次原地不动的滚动
+          if (back > 1 && back < bestDist) {
+            bestDist = back;
+            target = top;
+          }
         }
       }
       if (target === null) return;
 
-      pulling = true;
+      locked = true;
       window.scrollTo({ top: target, behavior: "smooth" });
-      // 平滑滚动约 300ms；锁一小段时间，免得用户中途接手时程序化滚动还在抢
+      // 平滑滚动约 300ms；锁一小段，免得用户中途接手时程序化滚动还在抢
       window.setTimeout(() => {
-        pulling = false;
+        locked = false;
       }, 420);
     };
 
@@ -97,14 +95,9 @@ export default function HomeSnap() {
     };
 
     window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", measure);
     return () => {
       window.clearTimeout(settle);
-      window.clearTimeout(t1);
-      window.clearTimeout(t2);
       window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", measure);
-      root.removeAttribute("data-snap");
     };
   }, []);
 

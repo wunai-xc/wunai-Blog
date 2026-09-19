@@ -22,11 +22,9 @@ import { icons } from "@/lib/icons";
  * 1. 吸附写在 <html> 上的 scroll-snap-type: y proximity（见 globals.css），
  *    而不是另建一个 100vh 的内部滚动容器。原因是页脚（语言切换/设置）在首页
  *    之后，如果让首页独占滚动，页脚会被永久挡住够不到。
- *    强度分两档，由 HomeSnap 判定：
- *    · 三屏都装得下视口 → data-snap="strong"，升到 mandatory（最强吸附）；
- *    · 有屏超过视口（手机上「随便看看」是单列）→ 保持 proximity，
- *      并由 HomeSnap 做“向前拉一把”的辅助吸附。二选一都是为了避免
- *      mandatory 把长内容的中段卡住、以及把页脚封在外面。
+ *    **强度只能用 proximity，不能用 mandatory**：它要求滚动容器只能停在吸附点上，
+ *    而三屏之后还跟着页脚、页脚没有吸附点，滚到第 3 屏起点后再往下就会被弹回，
+ *    页脚永远够不到（与屏高无关）。加力改由 HomeSnap 的辅助吸附提供。
  *
  * 2. 每屏高度取 calc(100svh - var(--header-h))，而不是 100vh：
  *    顶栏是 sticky 常驻的，扣掉它才能让每屏刚好填满可见区域；
