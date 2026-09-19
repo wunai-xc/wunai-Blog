@@ -1,5 +1,18 @@
 // 客户端安全的站点配置（不依赖 Node.js fs）
+import type { IconName } from "./icons";
+
 export type Lang = "zh" | "en";
+
+/* 导航菜单项。
+   icon 必须限定为 IconName（icons 对象是字面量键的 const 对象，
+   用普通 string 索引会报 TS7053）；
+   这里的 import 是 type-only，编译后会被抹除，不会把图标数据拉进客户端包。 */
+export interface MenuItem {
+  name: string;
+  href: string;
+  icon: IconName;
+  external?: boolean;
+}
 
 export interface PostFrontmatter {
   title: string;
@@ -106,7 +119,7 @@ export const SITE = {
       { name: "归档", href: "/zh/archives/", icon: "mdi:archive-outline" },
       { name: "友链", href: "/zh/links/", icon: "mdi:account-multiple-outline" },
       { name: "DMCC", href: "https://dmcc.wunai.top/", icon: "mdi:open-in-new", external: true },
-    ],
+    ] as MenuItem[],
     en: [
       { name: "Home", href: "/en/", icon: "mdi:home-outline" },
       { name: "Posts", href: "/en/posts/", icon: "mdi:file-document-outline" },
@@ -114,7 +127,7 @@ export const SITE = {
       { name: "Archives", href: "/en/archives/", icon: "mdi:archive-outline" },
       { name: "Links", href: "/en/links/", icon: "mdi:account-multiple-outline" },
       { name: "DMCC", href: "https://dmcc.wunai.top/", icon: "mdi:open-in-new", external: true },
-    ],
+    ] as MenuItem[],
   },
   i18n: {
     zh: { home: "首页", posts: "文章", tags: "标签", search: "搜索", archives: "归档", categories: "分类", prev: "上一篇", next: "下一篇", readingTime: "分钟阅读", words: "字", pinned: "置顶", aiWarning: "本文由 AI 生成，可能存在误区，斟酌阅读！！", comments: "评论", searchPlaceholder: "输入关键词搜索...", noResults: "没有找到相关结果。", allPosts: "全部文章", onThisPage: "本页目录", printSingle: "打印", mdDownload: "下载 MD", scrollDown: "向下滚动", continueReading: "继续阅读", links: "友链", linksIntro: "这里是一些朋友的站点。觉得本站有些意思、也想交换链接的话，欢迎通过页面底部的邮箱或 QQ 联系我，写上你的站名、地址和一句介绍就行。", email: "邮箱", github: "GitHub", bilibili: "哔哩哔哩", youtube: "YouTube", wechat: "微信", discord: "Discord", discordHint: "通过邮箱加我为好友", authorPrefix: "作者：", contactLabel: "欢迎随时来友好交流", contactBody: "仓库完全公开，欢迎 clone、参考与自定义修改（文章内容请注明出处）。发现问题或有想聊的，随时找我。", repoLabel: "本站仓库", groupLabel: "文章组", groupCount: "篇", groupBack: "返回文章组", thanks: "感谢你的阅读 :D", updates: "最近更新", settings: "设置", settingsHint: "这些设置只保存在当前浏览器（localStorage），不会上传。", palette: "配色方案", paletteCustom: "自定义", customAccent: "自选主色", readWidth: "阅读宽度", widthNarrow: "窄", widthNormal: "标准", widthWide: "宽", bgEffect: "背景动效", bgFull: "完整", bgDim: "减弱", bgOff: "关闭", acrylic: "亚克力材质", acrylicOn: "开（毛玻璃）", acrylicOff: "关（实色）", motion: "动画强度", motionFull: "完整", motionLite: "精简", motionOff: "关闭", resetSettings: "恢复默认" },
