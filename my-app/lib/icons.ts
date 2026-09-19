@@ -38,11 +38,7 @@ import mdiYoutube from "@iconify/icons-mdi/youtube";
 import mdiWechat from "@iconify/icons-mdi/wechat";
 import mdiDiscord from "@iconify/icons-mdi/discord";
 /* 顶栏导航图标（本地打包，不请求外部图标服务） */
-import mdiHomeOutline from "@iconify/icons-mdi/home-outline";
-import mdiMagnify from "@iconify/icons-mdi/magnify";
-import mdiArchiveOutline from "@iconify/icons-mdi/archive-outline";
 import mdiAccountMultipleOutline from "@iconify/icons-mdi/account-multiple-outline";
-import mdiOpenInNew from "@iconify/icons-mdi/open-in-new";
 
 export const icons = {
   "mdi:calendar-month-outline": mdiCalendarMonthOutline,
@@ -78,11 +74,7 @@ export const icons = {
   "mdi:youtube": mdiYoutube,
   "mdi:wechat": mdiWechat,
   "mdi:discord": mdiDiscord,
-  "mdi:home-outline": mdiHomeOutline,
-  "mdi:magnify": mdiMagnify,
-  "mdi:archive-outline": mdiArchiveOutline,
   "mdi:account-multiple-outline": mdiAccountMultipleOutline,
-  "mdi:open-in-new": mdiOpenInNew,
 } as const;
 
 export type IconName = keyof typeof icons;

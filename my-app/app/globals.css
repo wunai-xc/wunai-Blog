@@ -376,7 +376,7 @@ a:hover { text-decoration: underline; }
 }
 
 /* 全局：按钮、导航、标签等单行元素不换行，保持从左到右 */
-button, label, .menu-link, .icon-btn, .tag, .term-item,
+button, label, .friends-link, .tag, .term-item,
 .pagination a, .copy-btn, .pinned-badge, .author-badge,
 .breadcrumbs a, .toc a, .post-nav a, .post-nav .title, .post-nav .label,
 .post-meta > span, .post-card .meta > span, .archive-date {
@@ -404,9 +404,9 @@ html[data-font-scale="1.30"] { font-size: clamp(16.9px, 3.38vw, 20.8px); }
 .container { max-width: 760px; margin: 0 auto; padding: 0 16px; }
 .container-wide { max-width: 1280px; margin: 0 auto; padding: 0 16px; }
 
-/* ===== Header：三区导航栏 =====
-   结构：[主题切换] 大号 logo▌ + 小字行 | 导航菜单 | 友链 | 图片区
-   视觉仍是本站的简白：白底、一根细底边、直角，hover 用本站主色。 */
+/* ===== Header：三区导航栏（严格对齐参考稿） =====
+   ① 品牌区  ② 友链  ③ 图片区
+   视觉沿用本站简白：白底、一根细底边、直角，hover 用本站主色。 */
 .site-header {
   position: sticky; top: 0; z-index: 50;
   background: color-mix(in srgb, var(--bg) 88%, transparent);
@@ -416,34 +416,44 @@ html[data-font-scale="1.30"] { font-size: clamp(16.9px, 3.38vw, 20.8px); }
 .navbar {
   display: flex;
   align-items: stretch;
+  /* 三块：品牌在左、图片在右、友链落在中间 */
+  justify-content: space-between;
   gap: 0;
   list-style: none;
   margin: 0;
   padding: 0 0 0 24px;
   min-width: 0;
   /* 高度固定为 --header-h：这样该变量与实际顶栏高永远一致，
-     粘性标题 / 目录按钮 / 首屏高度都拿它定位，不会错位。
-     内容（品牌两行）在固定高内居中，因此不受字号微调影响。 */
+     粘性标题 / 目录按钮 / 首屏高度都拿它定位，不会错位。 */
   height: var(--header-h);
 }
-/* 各分区之间用竖线分隔，保持简白的轻量感（不做粗野风的粗框） */
-.menu, .friends, .header-tools-li {
-  display: flex;
-  align-items: center;
-  border-left: 1px solid var(--border);
-}
 
-/* ---------- 左：品牌区 ---------- */
+/* ---------- ① 品牌区 ---------- */
 .brand {
   display: grid;
   grid-template-columns: 44px auto;
   column-gap: 12px;
   align-content: center;
-  padding: 0 20px 0 0;
+  padding-right: 20px;
   flex: 0 0 auto;
   min-width: 0;
 }
-.brand-switch { grid-column: 1; grid-row: 1; display: flex; align-items: center; }
+/* 主题切换所在的正方形位（参考稿这里是圆形开关位，本站按直角约定做方） */
+.brand-switch {
+  grid-column: 1;
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+}
+.brand-switch .icon-btn {
+  width: 100%;
+  height: 100%;
+  justify-content: center;
+  font-size: 1.05rem;
+}
 .brand-text { grid-column: 2; grid-row: 1; min-width: 0; }
 
 .logo-link { display: inline-block; text-decoration: none; }
@@ -502,45 +512,20 @@ html[data-font-scale="1.30"] { font-size: clamp(16.9px, 3.38vw, 20.8px); }
 }
 .all-posts:hover { color: var(--accent); text-decoration: underline; }
 
-/* ---------- 中：导航菜单 ---------- */
-.menu {
-  gap: 2px;
-  padding: 0 10px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-  -webkit-overflow-scrolling: touch;
-  min-width: 0;
-}
-.menu::-webkit-scrollbar { display: none; }
-.menu-link {
-  display: inline-flex;
+/* ---------- ② 友链 ---------- */
+.friends {
+  display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 7px 11px;
-  font-size: 0.9rem;
-  color: var(--fg);
-  opacity: 0.85;
-  white-space: nowrap;
-  flex-shrink: 0;
+  padding: 0 16px;
+  flex: 0 0 auto;
 }
-.menu-link:hover {
-  background: var(--card);
-  opacity: 1;
-  text-decoration: none;
-}
-.menu-link svg { display: block; flex-shrink: 0; }
-
-/* ---------- 中：友链 ---------- */
-.friends { padding: 0 12px; flex: 0 0 auto; }
 .friends-link {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 3px;
-  padding: 8px 12px;
+  padding: 8px 14px;
   color: var(--fg);
   white-space: nowrap;
   border-radius: 0;
@@ -554,35 +539,22 @@ html[data-font-scale="1.30"] { font-size: clamp(16.9px, 3.38vw, 20.8px); }
 }
 .friends-link:hover .friends-label { color: var(--accent); }
 
-/* ---------- 右：工具栏 + 图片区 ---------- */
-.header-tools-li { padding: 0 12px; flex: 0 0 auto; }
-
-/* 图片区：宽度固定、高度跟随导航栏拉伸。
-   目前是 CSS 背景 + 两道斜白条（参考稿的装饰做法）；
-   想换成真实图片，把下面的 background 换成 url(...) 即可。 */
+/* ---------- ③ 图片区 ----------
+   高度由 .navbar 的 align-items: stretch 撑满，宽度固定。 */
 .image-placeholder {
   position: relative;
   width: 240px;
   flex: 0 0 auto;
   overflow: hidden;
   border-left: 1px solid var(--border);
-  background: linear-gradient(135deg,
-    color-mix(in srgb, var(--accent) 8%, var(--bg)) 0%,
-    color-mix(in srgb, var(--accent) 3%, var(--bg)) 100%);
+  background: var(--card);
 }
-.image-placeholder::before,
-.image-placeholder::after {
-  content: "";
-  position: absolute;
-  top: -40%;
-  width: 78%;
-  height: 180%;
-  background: color-mix(in srgb, var(--bg) 70%, transparent);
-  transform: skewX(-18deg);
-  pointer-events: none;
+.image-placeholder img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
-.image-placeholder::before { left: -70%; }
-.image-placeholder::after { right: -70%; }
 
 /* ---------- 入场：级联淡入（渐进增强） ----------
    默认可见；JS 就绪后加 .fade-ready 隐藏，再逐个加 .is-visible 播放。 */
@@ -604,7 +576,7 @@ html[data-font-scale="1.30"] { font-size: clamp(16.9px, 3.38vw, 20.8px); }
 
 /* ===== 可交互按钮：SVG 滤镜动效 ===== */
 /* 全局按钮基类：统一 hover 液态扭曲 + 辉光 + 点击深度 + 涟漪 */
-.menu-link, .icon-btn, .tag, .term-item, .post-nav a,
+.friends-link, .icon-btn, .tag, .term-item, .post-nav a,
 .pagination a, .copy-btn, .pinned-badge, .author-badge,
 .search-box, .toc a, .breadcrumbs a {
   position: relative;
@@ -618,7 +590,7 @@ html[data-font-scale="1.30"] { font-size: clamp(16.9px, 3.38vw, 20.8px); }
 }
 
 /* Hover: SVG 液态滤镜 + 微浮起 + 辉光 */
-.menu-link:hover, .icon-btn:hover,
+.friends-link:hover, .icon-btn:hover,
 .tag:hover, .term-item:hover, .post-nav a:hover,
 .pagination a:hover, .copy-btn:hover,
 .toc a:hover, .breadcrumbs a:hover {
@@ -628,7 +600,7 @@ html[data-font-scale="1.30"] { font-size: clamp(16.9px, 3.38vw, 20.8px); }
 }
 
 /* Active: 深度下陷 + 涟漪 */
-.menu-link:active, .icon-btn:active,
+.friends-link:active, .icon-btn:active,
 .tag:active, .term-item:active, .post-nav a:active,
 .pagination a:active, .copy-btn:active {
   filter: url(#filter-depth);
@@ -647,14 +619,13 @@ html[data-font-scale="1.30"] { font-size: clamp(16.9px, 3.38vw, 20.8px); }
 }
 
 /* Focus 键盘可达性：辉光 + 轮廓 */
-.menu-link:focus-visible, .icon-btn:focus-visible,
+.friends-link:focus-visible, .icon-btn:focus-visible,
 .tag:focus-visible, .term-item:focus-visible, .post-nav a:focus-visible {
   filter: url(#filter-glow);
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
-.header-tools { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
 .icon-btn {
   background: none; border: none; cursor: pointer; color: var(--fg);
   padding: 6px; border-radius: 0; opacity: 0.8; display: inline-flex;
@@ -2380,13 +2351,10 @@ html.dark .katex-error { color: #fca5a5; }
   :root { --header-h: 78px; }
   .navbar { padding-left: 14px; }
   .brand { padding-right: 14px; }
-  .menu { padding: 0 6px; }
-  .menu-link { padding: 6px 8px; font-size: 0.85rem; }
   .friends { padding: 0 8px; }
   .friends-link { padding: 7px 9px; }
+  .friends-icon { width: 1.6em; height: 1.6em; }
   .friends-label { font-size: 10px; }
-  .header-tools-li { padding: 0 8px; }
-  .header-tools { gap: 2px; }
   .icon-btn { padding: 5px; font-size: 0.85rem; }
   .image-placeholder { width: 140px; }
 
@@ -2426,20 +2394,18 @@ html.dark .katex-error { color: #fca5a5; }
 /* ===== 响应式：手机（≤ 480px） ===== */
 @media (max-width: 480px) {
   :root { --header-h: 70px; }
-  /* 手机：图片区与工具栏先收起（低频），优先保住品牌与菜单 */
+  /* 手机：三块都保留（图片不要藏，参考稿里它只是变窄） */
   .navbar { padding-left: 10px; }
   .brand { grid-template-columns: 36px auto; column-gap: 8px; padding-right: 10px; }
+  .brand-switch { width: 36px; height: 36px; }
   .brand-switch .icon-btn { padding: 4px; }
   .tagline { font-size: 10px; }
   .all-posts { font-size: 11px; }
-  .menu { padding: 0 4px; }
-  .menu-link { padding: 6px 7px; font-size: 0.8rem; gap: 4px; }
-  .friends { padding: 0 4px; }
-  .friends-link { padding: 5px 6px; }
-  .friends-icon { width: 1.15em; height: 1.15em; }
-  .image-placeholder { display: none; }
-  .header-tools-li { padding: 0 6px; }
-  .icon-btn { padding: 4px; font-size: 0.8rem; }
+  .friends { padding: 0 5px; }
+  .friends-link { padding: 6px 7px; }
+  .friends-icon { width: 1.35em; height: 1.35em; }
+  .friends-label { font-size: 9px; }
+  .image-placeholder { width: 80px; }
 
   .container, .container-wide { padding: 0 10px; }
 
