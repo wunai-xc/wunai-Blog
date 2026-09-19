@@ -425,9 +425,18 @@ export function getChangelog(): ChangelogEntry[] {
   }
 }
 
-/* 上一篇 / 下一篇：
-   卡组内文章只在组内接续，不与组外文章互通；
-   组外文章同理，不会走到卡组里去。 */
+/* 上一篇 / 下一篇。
+
+   卡组内文章只在组内接续，不与组外文章互通；组外文章同理，不会走进卡组。
+
+   两边的映射方向**相反**，这是很容易写错的地方，所以分别写清楚：
+
+   · 卡组内 members 按 order 升序（order 1→2→3，即阅读顺序），
+     所以下一节在后一个下标、上一节在前一个下标。
+   · 组外文章按日期降序（新的在前），旧的在后一个下标，
+     所以上一篇（更早的）取 idx+1、下一篇（更新的）取 idx-1。
+
+   曾经两边都写了 idx+1 / idx-1，导致卡组内的上下篇顺序颠倒。 */
 export function getPrevNext(lang: Lang, slug: string): { prev?: Post; next?: Post } {
   const post = getPost(lang, slug);
   if (!post) return {};
@@ -436,12 +445,14 @@ export function getPrevNext(lang: Lang, slug: string): { prev?: Post; next?: Pos
     const members = getGroup(lang, post.group)?.posts ?? [];
     const idx = members.findIndex((p) => p.slug === slug);
     if (idx === -1) return {};
-    return { prev: members[idx + 1], next: members[idx - 1] };
+    // 升序：下一个下标是「下一篇」
+    return { prev: members[idx - 1], next: members[idx + 1] };
   }
 
   const loose = getLoosePosts(lang);
   const idx = loose.findIndex((p) => p.slug === slug);
   if (idx === -1) return {};
+  // 降序：后一个下标是更早的文章，即「上一篇」
   return { prev: loose[idx + 1], next: loose[idx - 1] };
 }
 
