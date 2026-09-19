@@ -25,6 +25,7 @@ import mdiCheck from "@iconify/icons-mdi/check";
 import mdiRestore from "@iconify/icons-mdi/restore";
 import mdiFolderMultipleOutline from "@iconify/icons-mdi/folder-multiple-outline";
 import mdiArrowLeft from "@iconify/icons-mdi/arrow-left";
+import mdiArrowRight from "@iconify/icons-mdi/arrow-right";
 /* 页脚联系方式图标。
    关键：全部来自本地打包的 @iconify/icons-mdi，配合 @iconify/react/offline，
    不会向任何外部图标 CDN 发请求 —— 国内网络下同样能显示。
@@ -67,6 +68,7 @@ export const icons = {
   "mdi:restore": mdiRestore,
   "mdi:folder-multiple-outline": mdiFolderMultipleOutline,
   "mdi:arrow-left": mdiArrowLeft,
+  "mdi:arrow-right": mdiArrowRight,
   "mdi:email-outline": mdiEmailOutline,
   "mdi:github": mdiGithub,
   "mdi:source-repository": mdiSourceRepository,

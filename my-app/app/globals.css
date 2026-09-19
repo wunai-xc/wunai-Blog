@@ -306,7 +306,8 @@ html[data-acrylic="off"] .post-content,
 html[data-acrylic="off"] .post-card::after,
 html[data-acrylic="off"] .post-nav a,
 html[data-acrylic="off"] .friend-card,
-html[data-acrylic="off"] .changelog-list,
+html[data-acrylic="off"] .update-item,
+html[data-acrylic="off"] .home-card,
 html[data-acrylic="off"] .footer-link,
 html[data-acrylic="off"] .settings-panel,
 html[data-acrylic="off"] .site-footer {
@@ -322,7 +323,7 @@ html[data-acrylic="off"] .post-content::before { display: none; }
    off：等同于 prefers-reduced-motion。
    注意 hover 的液态脉冲（btn-liquid-pulse）只持续 0.6s 且需交互才触发，
    所以 lite 下不动它。 */
-html[data-motion="lite"] .scroll-hint svg,
+html[data-motion="lite"] .hero-hint svg,
 html[data-motion="lite"] .progress-dot.active .progress-dot-core::after,
 html[data-motion="lite"] .back-to-top:hover .back-top-ring,
 html[data-motion="lite"] .icon-btn:hover svg {
@@ -678,174 +679,303 @@ html[data-font-scale="1.30"] { font-size: clamp(16.9px, 3.38vw, 20.8px); }
   50% { transform: scaleX(-1) scale(1.15); }
 }
 
-/* ===== 首页首屏（无「关于」文章时）：简介 + 向下滑动图标 ===== */
-/* 高度占满减去 sticky header 后的一屏，让「向下滚动」更有行为含义 */
-.home-hero {
-  position: relative;
-  min-height: calc(100vh - 56px);
-  min-height: calc(100svh - var(--header-h));
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  text-align: center;
-  gap: 14px;
-  padding: 32px 16px 112px;
-}
-.home-hero h1 { font-size: clamp(1.6rem, 5.5vw, 2.2rem); margin: 0; word-break: break-word; }
-.home-hero p { color: var(--muted); margin: 0; max-width: 34em; word-break: break-word; }
-
-/* ===== 首页首屏（有「关于」文章）：直接渲染该文正文 ===== */
-/* 正文左对齐、不限高度，亚克力阅读面与文章页保持一致 */
-.home-about {
-  padding: 28px 0 8px;
-}
-.home-about-title {
-  font-size: clamp(1.6rem, 5vw, 2.1rem);
-  margin: 0 0 4px; word-break: break-word;
-  animation: home-intro-in 2s var(--ease-silk) both;
-}
-/* 正文本身也走同一段渐入，但略延迟，避免与标题同时启动显得生硬 */
-.home-about .article { animation: home-intro-in 2s var(--ease-silk) 0.25s both; }
-
-/* 首屏只露一屏内容：超出部分裁掉，底部用渐变遮罩渐隐，避免硬切断行 */
-.home-about-body {
-  position: relative;
-  max-height: clamp(320px, calc(100svh - 300px), 620px);
-  overflow: hidden;
-  -webkit-mask-image: linear-gradient(180deg, #000 60%, transparent 100%);
-  mask-image: linear-gradient(180deg, #000 60%, transparent 100%);
-}
-
-/* 「继续阅读」：导向文章页，风格与卡片按钮一致（直角） */
-.home-about-more {
-  display: inline-flex; align-items: center; gap: 6px;
-  margin: 4px 0 0;
-  padding: 8px 16px;
-  font-size: 0.9rem;
-  color: var(--fg);
-  border: 1px solid var(--border);
-  border-radius: 0;
-  background: var(--card-acrylic-sheen), var(--card-acrylic-bg);
-  box-shadow: var(--card-acrylic-glow);
-  backdrop-filter: blur(var(--card-acrylic-blur)) saturate(1.1);
-  -webkit-backdrop-filter: blur(var(--card-acrylic-blur)) saturate(1.1);
-  transition: border-color 0.3s var(--ease-silk), color 0.3s var(--ease-silk);
-}
-.home-about-more:hover {
-  text-decoration: none;
-  color: var(--accent);
-  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
-}
-
-/* 首屏 2s 渐入：标题与正文错开，整块不会齐刷刷地出现 */
-@keyframes home-intro-in {
-  from { opacity: 0; transform: translateY(14px); }
-  to   { opacity: 1; transform: none; }
-}
-.home-hero h1,
-.home-hero p { animation: home-intro-in 2s var(--ease-silk) both; }
-.home-hero p { animation-delay: 0.25s; }
-
-/* 向下滑动图标：基础部分用 flex 居中，不用 translateX，
-   以免与渐入动画的 transform 相撞 */
-.scroll-hint {
-  display: flex; justify-content: center;
-  color: var(--muted);
-  animation: home-intro-in 2s var(--ease-silk) 0.5s both;
-}
-/* 简介版首屏：图标钉在底部 */
-.home-hero .scroll-hint {
-  position: absolute;
-  left: 0; right: 0; bottom: 32px;
-}
-/* 关于版首屏：图标跟在正文之后正常排版 */
-.home-about .scroll-hint { margin: 28px 0 8px; }
-.scroll-hint:hover { color: var(--accent); text-decoration: none; }
-.scroll-hint svg { animation: scroll-hint-bounce 2.2s ease-in-out 2.6s infinite; }
-@keyframes scroll-hint-bounce {
-  0%, 100% { transform: translateY(0); }
-  50%      { transform: translateY(7px); }
-}
-
-/* ===== 首页展示区：滚动到位后渐入 ===== */
+/* ===== 滚动到位渐入（ScrollReveal） =====
+   首页已改为三屏吸附、不再用它，但组件本身是通用工具、保留着，
+   所以这两条基础样式也留着，免得以后拿去用时不生效。 */
 .reveal {
   opacity: 0;
   transform: translateY(22px);
   transition: opacity 1s var(--ease-silk), transform 1s var(--ease-silk);
 }
 .reveal.is-shown { opacity: 1; transform: none; }
-.home-posts { padding-bottom: 48px; scroll-margin-top: calc(var(--header-h) + 16px); }
 
-/* ===== 首页「最近更新」（首屏与文章卡片之间） ===== */
-.changelog {
-  margin: 8px 0 28px;
-  /* 锚点定位时避开 sticky header */
-  scroll-margin-top: calc(var(--header-h) + 16px);
-}
-.changelog-head {
-  font-size: 0.78rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--muted);
-  margin: 0 0 10px;
+/* ============================================================= */
+/* ===== 首页：三屏吸附（scroll-snap） ===== */
+/* ============================================================= */
+
+/* 吸附写在 <html> 上，而不是像常见做法那样另建一个 height:100vh 的内部滚动容器。
+   原因：页脚（语言切换 / 设置入口）跟在首页之后，若让首页独占滚动，
+   页脚会被永久挡住、读者根本够不到。
+   用 proximity 而不是 mandatory：mandatory 在某屏内容高于视口时会把页面「卡住」，
+   读者翻不到那屏的后半段，也滚不过最后一屏去够页脚。
+   scroll-padding-top 让吸附位置落在 sticky 顶栏下方，而不是被顶栏压住。 */
+/* 用 :has() 把作用域限定在有 .home-pager 的页面（也就是首页）。
+   不限定的话，scroll-padding-top 会连带影响文章页的锚点跳转——
+   那里已经有 .article h2 的 scroll-margin-top: 80px，两者会叠成双重偏移。 */
+html:has(.home-pager) {
+  scroll-snap-type: y proximity;
+  scroll-padding-top: var(--header-h);
 }
 
-/* 整体一块亚克力面板，条目之间用发丝线分隔 */
-.changelog-list {
+.home-pager { display: flex; flex-direction: column; }
+
+/* 每屏高度 = 一屏减去常驻顶栏。用 svh 而非 vh：
+   手机地址栏伸缩时 vh 会跳，svh 取的是地址栏展开时的稳定高度。 */
+.home-page {
   position: relative;
-  list-style: none;
+  min-height: calc(100svh - var(--header-h));
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 40px 24px;
+}
+/* 内容较多的两屏改为顶部对齐：居中会让长列表上下都露半截 */
+.home-section {
+  justify-content: flex-start;
+  padding-top: 52px;
+  padding-bottom: 48px;
+}
+
+/* ---------- 第 1 屏：首屏 ---------- */
+.hero-title {
+  margin: 0 0 18px;
+  font-size: clamp(2rem, 6.5vw, 4rem);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--fg);
+  word-break: break-word;
+}
+/* 名字用主色点出来（参考稿的 <em> 用法） */
+.hero-title em { font-style: normal; color: var(--accent); }
+.hero-sub {
+  margin: 0;
+  max-width: 34em;
+  font-size: 1rem;
+  line-height: 1.8;
+  color: var(--muted);
+  word-break: break-word;
+}
+
+/* 向下提示：钉在本屏底部。
+   关键帧里必须带上 translateX(-50%)，否则动画的 transform 会把居中位移覆盖掉。 */
+.hero-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--muted);
+  animation: hint-bounce 2s ease-in-out infinite;
+}
+.hero-hint:hover { color: var(--accent); text-decoration: none; }
+@keyframes hint-bounce {
+  0%, 100% { transform: translate(-50%, 0); }
+  50%      { transform: translate(-50%, 6px); }
+}
+
+/* ---------- 第 2 / 3 屏共用的标题 ---------- */
+.section-title {
+  margin: 0 0 6px;
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--fg);
+}
+.section-sub {
+  margin: 0 0 26px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+/* ---------- 第 2 屏：更新内容 ---------- */
+.update-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 620px;
   margin: 0;
   padding: 0;
-  border: 1px solid var(--border);
-  border-radius: 0;
-  background: var(--card-acrylic-sheen), var(--card-acrylic-bg);
-  box-shadow: var(--card-acrylic-glow);
-  backdrop-filter: blur(var(--card-acrylic-blur)) saturate(1.1);
-  -webkit-backdrop-filter: blur(var(--card-acrylic-blur)) saturate(1.1);
-  overflow: hidden;
+  list-style: none;
 }
-.changelog-item {
+.update-item {
+  position: relative;
   display: flex;
   align-items: baseline;
-  gap: 10px;
-  padding: 9px 14px;
-  font-size: 0.85rem;
+  gap: 16px;
+  padding: 14px 18px;
+  text-align: left;
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 0;               /* 全站直角约定 */
+  background: var(--card-acrylic-sheen), var(--card-acrylic-bg);
+  box-shadow: var(--card-acrylic-glow);
+  transition: transform 0.35s var(--ease-silk),
+              border-color 0.35s var(--ease-silk),
+              box-shadow 0.35s var(--ease-silk);
 }
-.changelog-item + .changelog-item {
-  border-top: 1px solid var(--border);
+/* hover 用右移而非上浮：这一屏是列表，横向位移读起来更像「选中这一条」 */
+.update-item:hover {
+  text-decoration: none;
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+  transform: translateX(4px);
 }
-
-.changelog-date {
+.update-item.is-new { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
+.update-date {
   flex-shrink: 0;
+  min-width: 88px;
   font-size: 0.75rem;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
-/* 提交信息：链接到 GitHub 上的提交，最多两行 */
-.changelog-msg {
+.update-title {
   flex: 1 1 auto;
   min-width: 0;
-  color: var(--fg);
+  font-size: 0.92rem;
+  font-weight: 600;
   line-height: 1.5;
   overflow-wrap: anywhere;
+}
+.update-tag {
+  flex-shrink: 0;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+}
+
+/* ---------- 第 3 屏：随便看看（交错卡片） ---------- */
+.stagger-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 20px;
+  width: 100%;
+  max-width: 680px;
+  text-align: left;
+}
+.stagger-col { display: flex; flex-direction: column; gap: 20px; }
+/* 右列整列下沉，形成交错 */
+.stagger-col-right { margin-top: 56px; }
+
+.home-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 20px;
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 0;               /* 全站直角约定 */
+  background: var(--card-acrylic-sheen), var(--card-acrylic-bg);
+  box-shadow: var(--card-acrylic-glow);
+  /* 与文章卡片同一套缓动与阴影变量，保持站内动效一致 */
+  transition: transform 0.45s var(--ease-silk),
+              border-color 0.45s var(--ease-silk),
+              box-shadow 0.45s var(--ease-silk);
+}
+.home-card:hover {
+  text-decoration: none;
+  border-color: color-mix(in srgb, var(--accent) 32%, var(--border));
+  transform: translateY(-4px) scale(1.005);
+  box-shadow: var(--card-shadow-hover-1), var(--card-shadow-hover-2);
+}
+.home-card-cat {
+  align-self: flex-start;
+  padding: 2px 8px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+}
+.home-card-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.45;
+  color: var(--fg);
+  word-break: break-word;
+  transition: color 0.45s var(--ease-silk);
+}
+.home-card:hover .home-card-title { color: var(--accent); }
+.home-card-desc {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.65;
+  color: var(--muted);
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-.changelog-msg:hover { color: var(--accent); text-decoration: none; }
-
-.changelog-sha {
-  flex-shrink: 0;
+.home-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
   font-size: 0.72rem;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
+/* AI 文章：标题与摘要改用自定义色，与首页文章卡片（.post-card.ai）保持一致 */
+.home-card.ai .home-card-title,
+.home-card.ai .home-card-desc,
+.home-card.ai .home-card-meta { color: var(--ai-color); }
 
-/* 窄屏：日期与 sha 挤不下，只留提交信息 */
+/* 本屏底部的「全部文章」入口 */
+.all-posts-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 34px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--fg);
+  /* gap 参与过渡：hover 时箭头轻微右移 */
+  transition: color 0.25s var(--ease-silk), gap 0.25s var(--ease-silk);
+}
+.all-posts-more:hover { color: var(--accent); gap: 12px; text-decoration: none; }
+
+/* ---------- 右侧分页指示点 ---------- */
+.page-indicator {
+  position: fixed;
+  right: 22px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 20;
+}
+.page-dot {
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  background: color-mix(in srgb, var(--fg) 18%, transparent);
+  transition: background-color 0.25s var(--ease-silk),
+              transform 0.25s var(--ease-silk);
+}
+.page-dot.active { background: var(--accent); transform: scale(1.35); }
+
+/* 窄屏：交错取消（单列），列表行收紧 */
+@media (max-width: 768px) {
+  .stagger-grid { column-gap: 16px; }
+  .stagger-col { gap: 16px; }
+  .stagger-col-right { margin-top: 40px; }
+  .page-indicator { right: 12px; }
+}
 @media (max-width: 560px) {
-  .changelog-date, .changelog-sha { display: none; }
-  .changelog-item { padding: 8px 12px; font-size: 0.82rem; }
+  .stagger-grid { grid-template-columns: 1fr; }
+  .stagger-col-right { margin-top: 0; }
+  .home-section { padding-top: 40px; }
+  .update-item { gap: 10px; padding: 12px 14px; }
+  .update-date { min-width: 0; font-size: 0.7rem; }
+  .update-title {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
 }
 
 /* ===== 文章卡片：3D 立体效果 ===== */
@@ -1209,7 +1339,8 @@ html.dark .pinned-badge { background: #78350f; color: #fde68a; }
 .post-card::before,
 .post-nav a::after,
 .friend-card::after,
-.changelog-list::after,
+.update-item::after,
+.home-card::after,
 .collection-card::after,
 .toc-panel::after,
 .settings-panel::after {
@@ -1279,7 +1410,7 @@ html.dark .pinned-badge { background: #78350f; color: #fde68a; }
 
    3. 动画容器内的标题不要加。ScrollReveal 的 .reveal 在动画期间带
       transform 与 opacity<1，同样是 backdrop root；标题会先以白色淡入、
-      动画结束才突变成黑。.changelog-head 就是因此不参与。
+      动画结束才突变成黑。
 
    4. 逐个点名，不用 main :is(h1, h2)。列表页的 .post-card h2 也是 h2，
       而它的 <a> 自带 color: var(--fg)（近黑）；父级一旦建立混合组，
@@ -1288,8 +1419,7 @@ html.dark .pinned-badge { background: #78350f; color: #fde68a; }
    外面包 @supports：万一浏览器不支持 mix-blend-mode，
    那 color: #fff 就会变成“白字白底”，比不生效更糟。*/
 @supports (mix-blend-mode: difference) {
-  .home-hero h1,
-  .home-about-title,
+  .hero-title,
   .page-title,
   .archive-year,
   .not-found h1 {
@@ -2539,13 +2669,13 @@ html.dark .katex-error { color: #fca5a5; }
   .toc-fab-wrap, .scroll-rail, .back-to-top,
   .toc-fab, .toc-panel, .sticky-heading,
   .bg-canvas,
-  .scroll-hint,
+  .hero-hint,
+  .page-indicator,
   .print-controls { display: none !important; }
 
   /* 差异混合在 PDF 里可能被光栅化或失效，打印时恢复普通混合与黑字。
      名单与上面的 @supports 块保持一致。 */
-  .home-hero h1,
-  .home-about-title,
+  .hero-title,
   .page-title,
   .archive-year,
   .not-found h1 {
@@ -2553,14 +2683,19 @@ html.dark .katex-error { color: #fca5a5; }
     color: #000 !important;
   }
 
-  /* 打印时不要裁切，「继续阅读」也没意义 */
-  .home-about-body {
-    max-height: none !important;
-    overflow: visible !important;
-    -webkit-mask-image: none !important;
-    mask-image: none !important;
+  /* 三屏吸附只对屏幕有意义：打印时按普通文档流依次输出三屏内容 */
+  html:has(.home-pager) { scroll-snap-type: none !important; }
+  .home-page {
+    min-height: 0 !important;
+    scroll-snap-align: none !important;
+    padding: 0 0 16px !important;
+    page-break-inside: avoid;
   }
-  .home-about-more { display: none !important; }
+  /* 交错卡片在纸上会彼此错位、左右不平衡，打印时改回单列顺序排列 */
+  .stagger-grid { display: block !important; max-width: none !important; }
+  .stagger-col { display: block !important; }
+  .stagger-col-right { margin-top: 0 !important; }
+  .home-card, .update-item { break-inside: avoid; }
 
   /* 打印首页时不能停留在渐入的隐藏态 */
   .reveal { opacity: 1 !important; transform: none !important; }
@@ -2597,12 +2732,19 @@ html.dark .katex-error { color: #fca5a5; }
   }
   /* 装饰性角标不进 PDF，省墨 */
   .post-card::before,
-  .post-nav a::after, .friend-card::after, .changelog-list::after,
+  .post-nav a::after, .friend-card::after, .update-item::after, .home-card::after,
   .collection-card::after, .toc-panel::after,
   .settings-panel::after
     { display: none !important; }
   /* 列表页若被打印：去掉卡片的毛玻璃与半透底，避免发灰 */
   .post-card::after { display: none !important; }
+  /* 首页三屏的卡片同样去底，避免 PDF 发灰 */
+  .update-item, .home-card {
+    background: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
   /* 卡组的堆叠层与跟随指针的光斑都不该进 PDF */
   .collection-stack, .collection-link::after { display: none !important; }
   .collection-link {

@@ -1,93 +1,134 @@
-import { SITE, getAboutPost, getHomeShowcase, getChangelog, type Lang } from "@/lib/content";
-import { renderMarkdown } from "@/lib/markdown";
-import PostCard from "@/components/PostCard";
-import PostBody from "@/components/PostBody";
-import ScrollReveal from "@/components/ScrollReveal";
+import {
+  SITE,
+  getHomeShowcase,
+  getChangelog,
+  readingMinutes,
+  type Lang,
+} from "@/lib/content";
+import PageIndicator from "@/components/PageIndicator";
 import { Icon } from "@iconify/react/offline";
 import { icons } from "@/lib/icons";
 
+/**
+ * 首页：三屏吸附式（scroll-snap）
+ *
+ *   第 1 屏  首屏问候 + 向下提示
+ *   第 2 屏  更新内容（最近提交，数据来自 public/changelog.json）
+ *   第 3 屏  随便看看（交错卡片）+ 全部文章入口
+ *
+ * 几点实现说明：
+ *
+ * 1. 吸附写在 <html> 上的 scroll-snap-type: y proximity（见 globals.css），
+ *    而不是另建一个 100vh 的内部滚动容器。原因是页脚（语言切换/设置）在首页
+ *    之后，如果让首页独占滚动，页脚会被永久挡住够不到。
+ *    用 proximity 而非 mandatory：mandatory 在内容比视口高时会把页面“卡住”，
+ *    读者翻不到后半段，也够不到页脚。
+ *
+ * 2. 每屏高度取 calc(100svh - var(--header-h))，而不是 100vh：
+ *    顶栏是 sticky 常驻的，扣掉它才能让每屏刚好填满可见区域；
+ *    用 svh 而非 vh 是为了避开手机浏览器地址栏伸缩导致的跳动。
+ *
+ * 3. 高度用 min-height 而非 height：更新列表较长时允许本屏自然变高，
+ *    不会像固定高度那样被裁掉内容。
+ */
 export default async function HomePage({ params }: { params: Promise<{ lang: string }> }) {
-  const p = await params; const lang = p.lang as Lang;
+  const p = await params;
+  const lang = p.lang as Lang;
   const t = SITE.i18n[lang];
   const info = SITE.homeInfo[lang];
-  // 「关于」文章（frontmatter about: true）的正文直接作为首屏；没有则退回站点简介
-  const about = getAboutPost(lang);
-  const aboutHtml = about ? await renderMarkdown(about) : null;
-  // 展示位：已用作「关于」的文章不再重复出现
-  const showcase = getHomeShowcase(lang);
-  // 最近更新（构建前由 scripts/generate-changelog.mjs 生成）
-  const updates = getChangelog();
 
-  const scrollHint = (
-    <a
-      className="scroll-hint"
-      // 没有更新数据时该区块不渲染，锚点回退到文章展示位，避免箭头发空
-      href={updates.length > 0 ? "#home-updates" : "#home-posts"}
-      title={t.scrollDown}
-      aria-label={t.scrollDown}
-    >
-      <Icon icon={icons["mdi:chevron-down"]} width="1.6em" height="1.6em" />
-    </a>
-  );
+  const updates = getChangelog();
+  const picks = getHomeShowcase(lang, 6);
 
   return (
-    <div className="container" style={{ paddingTop: 0 }}>
-      {about && aboutHtml ? (
-        /* 首屏：只露一屏正文（底部渐隐），完整内容点「继续阅读」进文章页 */
-        <section className="home-about">
-          <h1 className="home-about-title">
-            {about.title} <Icon icon={icons["mdi:hand-wave-outline"]} width="1em" height="1em" />
-          </h1>
-          <div className="home-about-body">
-            <PostBody html={aboutHtml} slug={about.slug} />
-          </div>
-          <a
-            className="home-about-more"
-            href={`/${lang}/posts/${encodeURIComponent(about.slug)}/`}
-          >
-            {t.continueReading}
-            <Icon icon={icons["mdi:book-open-outline"]} width="1.1em" height="1.1em" />
-          </a>
-          {scrollHint}
-        </section>
-      ) : (
-        /* 没有「关于」文章时：退回一句站点简介，撑满一屏 */
-        <section className="home-hero">
-          <h1>{info.title} <Icon icon={icons["mdi:hand-wave-outline"]} width="1em" height="1em" /></h1>
-          <p>{info.content}</p>
-          {scrollHint}
-        </section>
-      )}
+    <div className="home-pager">
+      {/* ===== 第 1 屏：首屏 ===== */}
+      <section className="home-page" data-home-page id="home-page-1">
+        <h1 className="hero-title">
+          {t.heroLead} <em>{SITE.author}</em>{t.heroEnd}
+        </h1>
+        <p className="hero-sub">{info.content}</p>
 
-      {/* 首屏之后、文章卡片之前：最近 5 次更新 */}
+        {/* 有更新就滚到第 2 屏，没有就直奔第 3 屏，避免停在空屏上 */}
+        <a
+          className="hero-hint"
+          href={updates.length > 0 ? "#home-page-2" : "#home-page-3"}
+          title={t.scrollDown}
+          aria-label={t.scrollDown}
+        >
+          <span>{t.scrollDown}</span>
+          <Icon icon={icons["mdi:chevron-down"]} width="1.1em" height="1.1em" />
+        </a>
+      </section>
+
+      {/* ===== 第 2 屏：更新内容 ===== */}
       {updates.length > 0 && (
-        <ScrollReveal id="home-updates" className="changelog">
-          <h2 className="changelog-head">{t.updates}</h2>
-          <ul className="changelog-list">
-            {updates.map((c) => (
-              <li key={c.sha} className="changelog-item">
-                {c.date && <time className="changelog-date">{c.date}</time>}
+        <section className="home-page home-section" data-home-page id="home-page-2">
+          <h2 className="section-title">{t.whatsNew}</h2>
+          <p className="section-sub">{t.whatsNewSub}</p>
+
+          <ul className="update-list">
+            {updates.map((c, i) => (
+              <li key={c.sha}>
                 <a
-                  className="changelog-msg"
+                  className={`update-item${i === 0 ? " is-new" : ""}`}
                   href={c.url}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  {c.message}
+                  {/* 日期拿不到时退回显示短 sha，保证左侧一列不会空掉 */}
+                  <span className="update-date">{c.date ?? c.sha}</span>
+                  <span className="update-title">{c.message}</span>
+                  {i === 0 && <span className="update-tag">{t.newBadge}</span>}
                 </a>
-                <code className="changelog-sha">{c.sha}</code>
               </li>
             ))}
           </ul>
-        </ScrollReveal>
+        </section>
       )}
 
-      {/* 向下滚动后：最多 3 篇，进入视口时渐入 */}
-      <ScrollReveal id="home-posts" className="home-posts">
-        {showcase.map((post) => (
-          <PostCard key={post.slug} post={post} lang={lang} hidePinnedBadge />
-        ))}
-      </ScrollReveal>
+      {/* ===== 第 3 屏：随便看看 ===== */}
+      <section className="home-page home-section" data-home-page id="home-page-3">
+        <h2 className="section-title">{t.picks}</h2>
+        <p className="section-sub">{t.picksSub}</p>
+
+        {/* 交错网格：右列整列下沉，两列各自纵向排列 */}
+        <div className="stagger-grid">
+          {[0, 1].map((col) => (
+            <div className={`stagger-col${col === 1 ? " stagger-col-right" : ""}`} key={col}>
+              {picks
+                .filter((_, i) => i % 2 === col)
+                .map((post) => (
+                  <a
+                    className={`home-card${post.isAI ? " ai" : ""}`}
+                    key={post.slug}
+                    href={`/${lang}/posts/${encodeURIComponent(post.slug)}/`}
+                  >
+                    {post.categories[0] && (
+                      <span className="home-card-cat">{post.categories[0]}</span>
+                    )}
+                    <h3 className="home-card-title">{post.title}</h3>
+                    {post.summary && <p className="home-card-desc">{post.summary}</p>}
+                    <span className="home-card-meta">
+                      <span>{post.date}</span>
+                      <span>
+                        {readingMinutes(post.wordCount)} {t.readingTime}
+                      </span>
+                    </span>
+                  </a>
+                ))}
+            </div>
+          ))}
+        </div>
+
+        <a className="all-posts-more" href={`/${lang}/posts/`}>
+          {t.allPosts}
+          <Icon icon={icons["mdi:arrow-right"]} width="1em" height="1em" />
+        </a>
+      </section>
+
+      {/* 三屏都在时给出三个点；没有更新数据就只有两屏 */}
+      <PageIndicator count={updates.length > 0 ? 3 : 2} label={t.pageNav} />
     </div>
   );
 }

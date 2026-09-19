@@ -1,4 +1,4 @@
-import { SITE, type Lang } from "../lib/content";
+import { SITE, getAboutPost, type Lang } from "../lib/content";
 import { Icon } from "@iconify/react/offline";
 import { icons } from "@/lib/icons";
 import ThemeToggle from "./ThemeToggle";
@@ -20,6 +20,13 @@ import HeaderIntro from "./HeaderIntro";
 export default function Header({ lang }: { lang: Lang }) {
   const t = SITE.i18n[lang];
   const isZh = lang === "zh";
+  /* 「About……」要指向「关于」文章本身。
+     首页已改成首屏问候 + 更新 + 推荐三屏，不再渲染关于正文，
+     所以这里不能再指回站点根路径（那会变成点了没反应）。 */
+  const about = getAboutPost(lang);
+  const aboutHref = about
+    ? `/${lang}/posts/${encodeURIComponent(about.slug)}/`
+    : `/${lang}/posts/`;
 
   return (
     <header className="site-header">
@@ -42,7 +49,7 @@ export default function Header({ lang }: { lang: Lang }) {
           <div className="tagline-row" data-fade>
             <span className="tagline">
               {isZh ? "wunai是谁？" : "Who is wunai?"}{" "}
-              <a href={`/${lang}/`}>{isZh ? "About……" : "About…"}</a>
+              <a href={aboutHref}>{isZh ? "About……" : "About…"}</a>
             </span>
             <a className="all-posts" href={`/${lang}/posts/`}>
               all posts →
