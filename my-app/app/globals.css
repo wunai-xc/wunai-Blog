@@ -775,13 +775,32 @@ html:has(.home-pager) {
   position: relative;
   min-height: calc(100svh - var(--header-h));
   scroll-snap-align: start;
-  scroll-snap-stop: always;
+  /* 刻意**不写** scroll-snap-stop: always。
+     它的语义是「滚动不得跨过吸附点」，于是最后一屏的起点成了一道墙：
+     想再往下到页脚会被拦在那里。在手机上因为第 3 屏超过一屏、
+     离页脚很远还不明显；桌面上三屏刚好一屏高，页脚紧跟在第 3 屏之后，
+     这个拦截就直接表现为「滚不到底」。
+     proximity 本身已经足够温和，不需要它来加强。 */
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
   padding: 40px 24px;
+}
+
+/* 页脚也参与吸附（只限首页）：用 end 对齐。
+
+   为什么必须加：首页三屏都是「刚好一屏高」，页脚又比一屏矮，
+   于是最大滚动量只落在最后一屏起点之后不到一屏的位置。
+   而 proximity 会在停止点离吸附点足够近时把它拉回去 ——
+   桌面上「页脚顶端」与「第 3 屏起点」的距离正好落在这个范围内，
+   于是页脚永远被拉回第 3 屏，**滚不到底**（手机上页脚相对更高更远，所以没暴露）。
+
+   加一个 end 对齐的吸附点后，「文档最底部」本身成了合法的停靠位置：
+   end 对齐算出的位置恰好等于最大滚动量，不需要超出范围再被截断。 */
+html:has(.home-pager) .site-footer {
+  scroll-snap-align: end;
 }
 /* 内容较多的两屏改为顶部对齐：居中会让长列表上下都露半截 */
 .home-section {
