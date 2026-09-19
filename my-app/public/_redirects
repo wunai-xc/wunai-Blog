@@ -1,0 +1,11 @@
+# Cloudflare Pages 静态重定向。
+# 作用：原文《博客书写规范》已拆成「卡组」（文章组）两篇，详情页移到
+# /<lang>/groups/博客书写规范/，旧的文章 URL 不再存在。这里把旧地址 301 过去，
+# 避免已发出的外链与书签变成死链。
+#
+# 注意：本文件只在 Cloudflare Pages 生效（Next.js 静态导出会把 public/ 原样复制到
+# out/，Cloudflare 会读取根目录的 _redirects）；用 npx serve out 本地预览时不生效。
+#
+# 路径写两种形式：各浏览器/代理是否先解码再匹配并不统一，两种都写上更稳。
+/zh/posts/博客书写规范/ /zh/groups/博客书写规范/ 301
+/zh/posts/%E5%8D%9A%E5%AE%A2%E4%B9%A6%E5%86%99%E8%A7%84%E8%8C%83/ /zh/groups/%E5%8D%9A%E5%AE%A2%E4%B9%A6%E5%86%99%E8%A7%84%E8%8C%83/ 301
