@@ -44,12 +44,17 @@
   }
 }
 
-/* 标题、段落、列表、引用等文字元素入场（按刻阶梯推进） */
-.post-card .title, .post-card .summary, .post-card .meta,
+/* 标题、段落、列表、引用等文字元素入场（按刻阶梯推进）。
+
+   填充模式用 backwards 而不是 both：
+   both 会在动画结束后继续占着 transform，从而压过 hover 的位移
+   （.tag / .term-item / .post-nav a 的浮起、卡片鼠标跟随时 PostCard 写的
+   行内 transform —— 都会被这条 animation 输掉）。
+   而这条动画的 100% 帧与元素常态本就一致，after 阶段没有任何东西要保留，
+   所以 backwards 在视觉上完全等价，还顺带修好了上面那批 hover 失效。 */
 .article h1, .article h2, .article h3, .article h4,
 .article p, .article li, .article blockquote,
 .archive-list li,
-.collection-card,
 .term-item, .tag,
 .pagination a,
 .post-nav a,
@@ -57,7 +62,20 @@
 .search-box,
 .toc a,
 .footer {
-  animation: slide-in-from-right var(--enter-duration) steps(10, end) both;
+  animation: slide-in-from-right var(--enter-duration) steps(10, end) backwards;
+}
+
+/* 卡片：**整块**入场，里面的文字跟着一起来。
+
+   之前只动画了卡片里的标题 / 摘要 / 元信息（`.post-card .title` 等），
+   卡片本体不动 —— 看到的就是“文字飞来飞去、卡片框不动”的割裂感；
+   而且下面那组 .post-card:nth-child(n) 的错位延迟因为目标选错而完全没生效。
+   现在改为动画卡片本体，内部文字不再单独动。 */
+.post-card,
+.collection-card,
+.home-card,
+.update-item {
+  animation: slide-in-from-right var(--enter-duration) steps(10, end) backwards;
 }
 
 /* 错位入场：不同区块延迟不同，营造层次感 */
@@ -140,6 +158,17 @@ html[data-page-hidden] *::after {
   animation-play-state: paused !important;
 }
 
+/* 阅读区浮动控件（粘性标题 / 目录按钮 / 目录面板）距视口顶部的距离，默认跟随顶栏高度。
+   阅读文章时顶栏会自动隐藏，届时通过 html[data-header="hidden"] 把它归零，
+   浮动控件顺势上移占住空出来的位置。
+   @property 必须写在顶层：注册成 <length> 类型后它才能被 transition 平滑插值，
+   否则自定义属性变化是阶跃的，控件会“跳”一下。 */
+@property --chrome-top {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0px;
+}
+
 /* ===== 主题变量（PaperMod 风格） ===== */
 /* 亮色主题整体带一点极淡的暖红调（约 1–2% 红偏），
    只在成片的底色/面板上看得出，单看某个元素几乎察觉不到。
@@ -173,6 +202,10 @@ html[data-page-hidden] *::after {
      改顶栏内边距或 logo 字号时只改这一个值即可。
      取值为品牌区两行（logo + 小字行）加上下内边距的实测高度。 */
   --header-h: 90px;
+  /* 浮动控件偏移：默认贴着顶栏下沿。顶栏隐藏时改为 0（见下面的 data-header 规则）。
+     用 @property 注册成 <length> 类型，它才能被 transition 平滑插值；
+     不注册的话自定义属性变化是阶跃的，控件会“跳”一下。 */
+  --chrome-top: var(--header-h);
   --reading-border: rgba(60, 20, 20, 0.07);
   --reading-inner-glow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
   --reading-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 28%);
@@ -192,7 +225,7 @@ html[data-page-hidden] *::after {
   --cn-arm: 3.5px;      /* 十字到交点的臂长（线段全长 = 2×）
                            随 --cn-inset 调小：框离边框只有 5px 了，
                            臂再长 4.5px 就会顶到元素自己的边框上 */
-  --cn-w: 1px;          /* 线宽（发丝级） */
+  --cn-w: 0.5px;        /* 线宽（发丝级；0.5px 在高分屏上按半像素渲染） */
   /* 十字的臂：中段为交点色，向两端渐变到终点色 */
   --cn-h: linear-gradient(90deg, var(--cn-end), var(--cn-color), var(--cn-end));
   --cn-v: linear-gradient(180deg, var(--cn-end), var(--cn-color), var(--cn-end));
@@ -235,10 +268,10 @@ html.dark {
   --card-shadow-hover-1: 0 2px 6px rgba(0,0,0,0.4);
   --card-shadow-hover-2: 0 8px 24px rgba(0,0,0,0.5);
   --card-shadow-hover-3: 0 20px 48px rgba(0,0,0,0.6);
-  /* 角标：暗色下改为暗红 → 黑（不再是蓝 → 白），
-     黑基本等于页面底色，所以读起来仍是“从交点淡出” */
-  --cn-color: #7f1d1d;
-  --cn-end: #000000;
+  /* 角标：与亮色主题同一套读法——交点色跟随 --accent，终点色取页面底色。
+     原先暗色是「暗红 → 黑」，与亮色的「蓝 → 白」差距很大，两个主题看起来像两套设计。 */
+  --cn-color: var(--accent);
+  --cn-end: var(--bg);
   /* ===== 暗色：只保留毛玻璃，不要任何白色渐变 =====
      两个原因：
      1. 白高光/白渐变在深底上显得脏，像蒙了一层灰；
@@ -413,6 +446,29 @@ html[data-font-scale="1.30"] { font-size: clamp(16.9px, 3.38vw, 20.8px); }
   background: color-mix(in srgb, var(--bg) 88%, transparent);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--border);
+  /* 阅读文章时顶栏上下滑动（文章页的 ReadingHeader 组件切到 hidden） */
+  transition: transform 0.45s var(--ease-silk);
+}
+
+/* 顶栏隐藏：上移自身高度。
+   用 transform 而不是 height —— 改高度会让 sticky 元素每帧重排整篇文档，长文会卡。
+   同时把浮动控件偏移归零，让粘性标题 / 目录按钮跟着上移，不留一道空白带。 */
+html[data-header="hidden"] .site-header {
+  transform: translateY(-100%);
+  /* 隐藏后不再接收点击，避免隔空拦住下方内容 */
+  pointer-events: none;
+}
+html[data-header="hidden"] {
+  --chrome-top: 0px;
+}
+/* 自定义属性平滑过渡：必须在声明它的元素（html）上写 transition，
+   子元素只是继承计算结果，在其上写无效。 */
+html {
+  transition: --chrome-top 0.45s var(--ease-silk);
+}
+@media (prefers-reduced-motion: reduce) {
+  .site-header { transition: none; }
+  html { transition: none; }
 }
 .navbar {
   display: flex;
@@ -1786,10 +1842,12 @@ html.dark .author-badge.ai { background: #450a0a; color: #fca5a5; }
 /* ===== 浮动文章导航：Sticky Heading / TOC 按钮 / 进度条 / 回顶 ===== */
 /* ============================================================= */
 
-/* ===== Sticky Heading：当前章节标题固定在 header 下方 ===== */
+/* ===== Sticky Heading：当前章节标题固定在顶栏下方 =====
+   top 必须用 --chrome-top（= --header-h，顶栏隐藏时归零）。
+   之前这里写死 56px，而手机上顶栏是 70px —— 顶栏比它高，直接把它盖住了。 */
 .sticky-heading {
   position: fixed;
-  top: 56px; left: 0; right: 0;
+  top: var(--chrome-top); left: 0; right: 0;
   z-index: 48;
   height: 36px;
   display: flex; align-items: center;
@@ -1821,7 +1879,7 @@ html.dark .author-badge.ai { background: #450a0a; color: #fca5a5; }
 .toc-fab {
   position: fixed;
   left: 12px;
-  top: 57px;
+  top: calc(var(--chrome-top) + 1px);
   z-index: 49;
   width: 34px; height: 34px;
   border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
@@ -1879,7 +1937,7 @@ html.dark .author-badge.ai { background: #450a0a; color: #fca5a5; }
 .toc-panel {
   position: fixed;
   left: 12px;
-  top: 96px;
+  top: calc(var(--chrome-top) + 44px);
   width: 260px; max-height: calc(100vh - 112px);
   background: var(--bg);
   border: 1px solid var(--border);
