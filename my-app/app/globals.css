@@ -648,8 +648,11 @@ html[data-font-scale="1.30"] { font-size: clamp(16.9px, 3.38vw, 20.8px); }
 .icon-btn:has(svg[data-icon="mdi:theme-light-dark"]):hover svg {
   animation: icon-flip 1.5s ease-in-out infinite;
 }
-/* 翻译图标：hover 水平翻转 */
-.icon-btn:has(svg[data-icon="mdi:translate"]):hover svg {
+/* 翻译图标：hover 水平翻转。
+   语言切换已移到页脚，所以这里同时覆盖 .footer-link，
+   让原先顶栏上的翻转动效在页脚照样保留。 */
+.icon-btn:has(svg[data-icon="mdi:translate"]):hover svg,
+.footer-link:has(svg[data-icon="mdi:translate"]):hover svg {
   animation: icon-flip-h 1s ease-in-out infinite;
 }
 @keyframes icon-spin {

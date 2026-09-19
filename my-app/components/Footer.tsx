@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { SITE, type Lang } from "../lib/content";
 import { Icon } from "@iconify/react/offline";
 import { icons } from "@/lib/icons";
+import LangSwitcher from "./LangSwitcher";
 
 /* 图标 + 标签：图标来自本地打包的 MDI，不请求外部 CDN，国内可正常显示；
    鼠标悬停卡片时图标会做一段小幅动作（见 .footer-link-icon 的注释）。 */
@@ -79,6 +80,18 @@ export default function Footer({ lang }: { lang: Lang }) {
             <Label icon="mdi:discord">{t.discord}</Label>
             <span className="footer-link-value">{t.discordHint}</span>
           </div>
+
+          {/* 站点控制项：原先挂在顶栏，现按需求移到页脚。
+              样式与其它卡片一致；语言项是客户端组件（需读当前路径）。 */}
+          <a className="footer-link" href={`/${lang}/settings/`}>
+            <Label icon="mdi:cog-outline">{t.settings}</Label>
+            <span className="footer-link-value">{t.settingsSummary}</span>
+          </a>
+          <LangSwitcher
+            label={t.language}
+            name={t.languageName}
+            title={t.switchLang}
+          />
         </div>
 
         <p className="footer-thanks">{t.thanks}</p>
