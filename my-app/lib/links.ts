@@ -96,6 +96,19 @@ export const FRIEND_LINKS: FriendLink[] = [
       en: "Ocean remote sensing · Data science · Everyday tinkering",
     },
   },
+  {
+    name: "Ryan100c",
+    url: "https://hotpad100c-github-io.pages.dev/",
+    // 用 GitHub 的官方头像端点（github.com/<用户名>.png 会 302 到
+    // avatars.githubusercontent.com，支持 ?size=），比外链图床稳。
+    avatar: "https://github.com/hotpad100c.png?size=96",
+    description: {
+      // 取自对方站点首页的自述：编程 · Minecraft · 创造 /
+      // 记录开发日志、灵感、与 Minecraft 技术研究
+      zh: "编程 · Minecraft · 创造：记录开发日志、灵感与 Minecraft 技术研究",
+      en: "Programming · Minecraft · Making: dev logs, ideas and technical Minecraft research",
+    },
+  },
 ];
 
 export function getFriendLinks(): FriendLink[] {
