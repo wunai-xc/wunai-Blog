@@ -59,17 +59,68 @@ function parseVal(v) {
   return v;
 }
 
+/* 收集一个语言下的全部文章，返回 { slug, filePath }[]。
+
+   必须与 lib/content.ts 的扫描规则保持一致，支持三种写法：
+     平铺：          <name>.md              → slug = name
+     单篇文件夹：    <dir>/index.md          → slug = dir
+     卡组：          <dir>/_index.md + 其它  → slug = 成员文件名（撞名时加组名前缀）
+   _index.md 是卡组的组说明，本身不是文章，要跳过。
+
+   为什么必须递归：卡组内的文章也是文章，只读顶层会让它们整个掉出搜索索引
+   （同时也掉出 RSS）。拆分《博客书写规范》后曾因此从搜索里消失。 */
+function collectPosts(dir) {
+  const out = [];
+  const used = new Set();
+  const unique = (base, group) => {
+    if (!used.has(base)) return base;
+    if (group && !used.has(`${group}--${base}`)) return `${group}--${base}`;
+    let i = 2;
+    while (used.has(`${base}-${i}`)) i++;
+    return `${base}-${i}`;
+  };
+
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (entry.isDirectory()) {
+      const sub = path.join(dir, entry.name);
+      const groupIndex = path.join(sub, "_index.md");
+      const leafIndex = path.join(sub, "index.md");
+      if (!fs.existsSync(groupIndex)) {
+        // 没有 _index.md：只有 index.md 时按单篇文件夹处理，否则忽略该目录
+        if (fs.existsSync(leafIndex)) out.push({ slug: unique(entry.name), filePath: leafIndex });
+        continue;
+      }
+      // 卡组：跳过两个索引文件，其余按文件名顺序收集
+      fs.readdirSync(sub)
+        .filter((f) => f.endsWith(".md") && f !== "_index.md" && f !== "index.md")
+        .sort()
+        .forEach((f) =>
+          out.push({
+            slug: unique(f.replace(/\.md$/, ""), entry.name),
+            filePath: path.join(sub, f),
+          })
+        );
+      continue;
+    }
+    if (!entry.name.endsWith(".md") || entry.name === "_index.md") continue;
+    out.push({
+      slug: unique(entry.name.replace(/\.md$/, "")),
+      filePath: path.join(dir, entry.name),
+    });
+  }
+  return out;
+}
+
 for (const lang of ["zh", "en"]) {
   const dir = path.join(CONTENT_ROOT, lang, "posts");
   if (!fs.existsSync(dir)) continue;
-  const docs = fs.readdirSync(dir)
-    .filter((f) => f.endsWith(".md") && f !== "_index.md")
-    .map((file) => {
-      const { data, content } = readMarkdown(path.join(dir, file));
+  const docs = collectPosts(dir)
+    .map(({ slug, filePath }) => {
+      const { data, content } = readMarkdown(filePath);
       if (data.draft) return null;
       return {
-        slug: file.replace(/\.md$/, ""),
-        title: data.title || file,
+        slug,
+        title: data.title || slug,
         summary: data.summary || "",
         tags: data.tags || [],
         content: content.replace(/[#>*`\-\[\]]/g, " ").slice(0, 2000),

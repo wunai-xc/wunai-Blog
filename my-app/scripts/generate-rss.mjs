@@ -39,14 +39,56 @@ function parseVal(v) {
   if (!isNaN(Number(v))) return Number(v); return v;
 }
 
+/* 收集一个语言下的全部文章（与 scripts/generate-search-index.mjs 同规则）。
+   必须递归子目录：卡组内的文章也是文章，只读顶层会让它们掉出 RSS。 */
+function collectPosts(dir) {
+  const out = [];
+  const used = new Set();
+  const unique = (base, group) => {
+    if (!used.has(base)) return base;
+    if (group && !used.has(`${group}--${base}`)) return `${group}--${base}`;
+    let i = 2;
+    while (used.has(`${base}-${i}`)) i++;
+    return `${base}-${i}`;
+  };
+
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (entry.isDirectory()) {
+      const sub = path.join(dir, entry.name);
+      const groupIndex = path.join(sub, "_index.md");
+      const leafIndex = path.join(sub, "index.md");
+      if (!fs.existsSync(groupIndex)) {
+        if (fs.existsSync(leafIndex)) out.push({ slug: unique(entry.name), filePath: leafIndex });
+        continue;
+      }
+      fs.readdirSync(sub)
+        .filter((f) => f.endsWith(".md") && f !== "_index.md" && f !== "index.md")
+        .sort()
+        .forEach((f) =>
+          out.push({
+            slug: unique(f.replace(/\.md$/, ""), entry.name),
+            filePath: path.join(sub, f),
+          })
+        );
+      continue;
+    }
+    if (!entry.name.endsWith(".md") || entry.name === "_index.md") continue;
+    out.push({
+      slug: unique(entry.name.replace(/\.md$/, "")),
+      filePath: path.join(dir, entry.name),
+    });
+  }
+  return out;
+}
+
 const allPosts = [];
 for (const lang of ["zh", "en"]) {
   const dir = path.join(CONTENT_ROOT, lang, "posts");
   if (!fs.existsSync(dir)) continue;
-  for (const f of fs.readdirSync(dir).filter(f => f.endsWith(".md") && f !== "_index.md")) {
-    const { data, content } = readMd(path.join(dir, f));
+  for (const { slug, filePath } of collectPosts(dir)) {
+    const { data, content } = readMd(filePath);
     if (data.draft) continue;
-    allPosts.push({ lang, slug: f.replace(/\.md$/, ""), title: data.title, date: String(data.date), summary: data.summary || content.slice(0, 200) });
+    allPosts.push({ lang, slug, title: data.title, date: String(data.date), summary: data.summary || content.slice(0, 200) });
   }
 }
 allPosts.sort((a, b) => b.date.localeCompare(a.date));

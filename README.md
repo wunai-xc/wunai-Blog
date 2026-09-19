@@ -22,6 +22,7 @@
 - [部署](#部署)
 - [性能与可访问性](#性能与可访问性)
 - [常见问题](#常见问题)
+- [项目文档](#项目文档)
 - [许可](#许可)
 
 ---
@@ -51,8 +52,9 @@
 - 动态可互动背景（点网格 + 细连线：网格被光标 / 触点拨动后自行回弹，明暗主题自适应，详见[性能与可访问性](#性能与可访问性)）
 - 友链页：卡片列表（图片 / 名称 / 一句话介绍），数据在 `lib/links.ts`
 - 文章卡片右侧缩略图：优先 frontmatter 的 `cover.image`，没写封面则自动取正文第一张图；取不到就不渲染图片（见[性能与可访问性](#性能与可访问性)）
-- 页脚：欢迎语 + 邮箱 / GitHub / 本站仓库三个联系方式卡片（数据在 `SITE.contact`）
-- 首页：首屏只露一屏「关于」文章（底部渐隐 + 继续阅读）+ 最近 5 次更新 + 滚动到位渐入的展示位
+- 顶栏：三块——品牌区（主题切换 + 大号 logo + 闪烁光标 + 「About…… / all posts →」小字行）、友链、右侧图片区（见 `components/Header.tsx`）
+- 页脚：欢迎语 + 七张联系方式卡片（邮箱 / GitHub / 本站仓库 / 哔哩哔哩 / YouTube / 微信 / Discord）+ 设置与语言切换卡片（数据在 `SITE.contact` 与 `lib/site.ts` 的 `i18n`）
+- 首页：三屏**吸附式**（scroll-snap）——首屏问候 / 更新内容（最近 5 次提交）/ 随便看看（交错卡片 + 全部文章入口），右侧分页指示点可点击跳屏
 - 文章页单栏居中，无侧栏；文章目录 / 阅读进度 / 回到顶部以浮动导航形式提供
 - 正文阅读面：半透底；**毛玻璃只在 ≥1024px 启用**（长文上万像素，模糊层会吃几十 MB 显存，手机上会表现为文章页打不开）
 - 卡片与上下篇同样为亚克力材质，与阅读面同一套材质语言；暗色下只保留毛玻璃，无白色渐变
@@ -87,7 +89,8 @@
 ```
 .
 ├── .github/
-│   └── workflows/deploy.yml        # 推送到 main/master 自动构建并发布到 Cloudflare Pages
+│   └── workflows/deploy.yml        # 可选的手动部署工作流（已改为仅 workflow_dispatch 触发；
+│                                   # 日常推送由 Cloudflare Pages 的 Git 集成自动部署）
 ├── my-app/                         # Next.js 应用主体
 │   ├── app/
 │   │   ├── layout.tsx              # 根布局：元数据、主题引导脚本、SVG 滤镜、动态背景、SW 注册
@@ -97,9 +100,10 @@
 │   │   ├── robots.ts / sitemap.ts  # 静态生成的 robots 与 sitemap
 │   │   └── [lang]/                 # zh | en 双语路由
 │   │       ├── layout.tsx          # Header + main + Footer
-│   │       ├── page.tsx            # 首页（博客介绍 + 展示位）
-│   │       ├── posts/page.tsx      # 文章列表
+│   │       ├── page.tsx            # 首页（三屏吸附：问候 / 更新内容 / 随便看看）
+│   │       ├── posts/page.tsx      # 文章列表（文章与卡组混排）
 │   │       ├── posts/[slug]/page.tsx  # 文章详情（单栏正文、TOC、上下篇、评论、JSON-LD）
+│   │       ├── groups/[slug]/page.tsx # 卡组（文章组）详情，按组内顺序列出
 │   │       ├── tags/、categories/  # 标签 / 分类索引与详情
 │   │       ├── archives/           # 按年份归档
 │   │       ├── links/              # 友链（卡片列表，数据在 lib/links.ts）
@@ -107,17 +111,20 @@
 │   │       └── search/             # 站内搜索
 │   ├── components/
 │   │   ├── InteractiveBackground.tsx  # 点网格交互背景（Canvas）
-│   │   ├── PostBody.tsx            # 正文渲染 + 复制按钮 + 图表按需加载
-│   │   ├── ScrollReveal.tsx        # 滚动到位后渐入（IntersectionObserver）
+│   │   ├── PostBody.tsx            # 正文渲染 + 复制按钮 + 图表按需加载 + 图片失败占位 + 长公式缩放
+│   │   ├── HeaderIntro.tsx         # 顶栏级联淡入（渐进增强）与光标暂停
+│   │   ├── GroupCard.tsx           # 卡组卡片（背后叠层 + 跟随指针的光斑）
+│   │   ├── PageIndicator.tsx       # 首页右侧分页指示点
+│   │   ├── ScrollReveal.tsx        # 滚动到位后渐入（IntersectionObserver；首页已不再使用但保留）
 │   │   ├── SiteSettings.tsx        # 设置页客户端组件（读写 localStorage 并同步到 <html>）
 │   │   ├── Header.tsx / Footer.tsx / PostCard.tsx / PostNav.tsx
 │   │   ├── ThemeToggle.tsx / FontSizeControl.tsx / LangSwitcher.tsx
 │   │   ├── Comments.tsx / PrintControls.tsx / Search.tsx / RouteLoading.tsx
 │   ├── content/                    # 站点内容
-│   │   ├── zh/posts/*.md
-│   │   └── en/posts/*.md
+│   │   ├── zh/posts/               # 中文文章（支持平铺 / 单篇文件夹 / 卡组三种写法）
+│   │   └── en/posts/
 │   ├── lib/
-│   │   ├── content.ts              # 文章读取、frontmatter 解析、排序、聚合
+│   │   ├── content.ts              # 文章读取、frontmatter 解析、卡组识别、排序与聚合
 │   │   ├── links.ts                # 友链数据（名称 / 地址 / 图片 / 介绍）
 │   │   ├── settings.ts             # 设置项定义、localStorage 键名、自定义主色的明度换算
 │   │   ├── markdown.ts             # unified 渲染管线、短代码、TOC 提取
@@ -280,25 +287,32 @@ C D E F G A B c
 
 ### 页脚联系方式
 
-页脚的联系方式与欢迎语在 **`my-app/lib/site.ts`** 的 `SITE.contact`：
+页脚的联系方式在 **`my-app/lib/site.ts`** 的 `SITE.contact`（只放与语言无关的地址与账号），
+而所有**要翻译的文案**在 `SITE.i18n.<lang>`：
 
 ```ts
 contact: {
-  label: "欢迎随时来友好交流",
-  body: "仓库完全公开，欢迎 clone、参考与自定义修改（文章内容请注明出处）。……",
   email: "3234319738@qq.com",
   github: "https://github.com/wunai-xc",
   repo: "https://github.com/wunai-xc/wunai-blog",
-  repoLabel: "本站仓库",
+  bilibili: "https://b23.tv/2alhnm5",   bilibiliName: "WUNAI-XC",
+  youtube: "https://youtube.com/@wunai-xc", youtubeName: "@wunai-xc",
+  wechat: "wunaixc",
 },
 ```
 
-- 三个按钮分别渲染为 `mailto:`、GitHub 主页、仓库地址（后两个新窗口打开）；显示文本会自动去掉 `https://` 前缀
-- 按钮文案（邮箱 / GitHub）与「感谢你的阅读 :D」在 `SITE.i18n.<lang>` 的 `email` / `github` / `thanks`
+- 邮箱渲染为 `mailto:`，其余外链新窗口打开，显示文本自动去掉 `https://` 前缀；
+  微信 ID 与 Discord 没有可跳转的链接，渲染为**纯展示卡片**（不可点、无 hover 抬升）
+- 卡片文案（邮箱 / GitHub / 本站仓库 / 哔哩哔哩 / YouTube / 微信 / Discord / 设置 / 语言）
+  与欢迎语、仓库名、Discord 说明都在 `SITE.i18n.<lang>`
+  
+  ⚠️ **曾经把 `label` / `body` / `repoLabel` 写在 `contact` 里，导致英文页也显示中文。**
+  记住分工：**地址与账号在 `contact`，要翻译的文字在 `i18n`**。
+- 设置与语言切换两张卡片同属页脚（语言切换是客户端组件，需要读当前路径）
 
 ### 站点设置页
 
-页面位于 `/{lang}/settings/`，顶栏的⚙按钮进入；组件是 `components/SiteSettings.tsx`，选项定义与键名在 `lib/settings.ts`。
+页面位于 `/{lang}/settings/`，从**页脚的「设置」卡片**进入；组件是 `components/SiteSettings.tsx`，选项定义与键名在 `lib/settings.ts`。
 
 | 设置项 | 取值 | 作用点 |
 | --- | --- | --- |
@@ -520,6 +534,27 @@ npx wrangler pages deploy out --project-name=wunai-blog
 
 **新增语言怎么办？**
 需要同步新增：`content/<lang>/posts/`、`lib/site.ts` 中的 `menu` / `homeInfo` / `i18n` 条目、`app/[lang]/layout.tsx` 的 `generateStaticParams`、以及两个构建脚本里的 `["zh", "en"]` 数组。
+
+---
+
+## 项目文档
+
+| 文档 | 内容 | 读者 |
+| --- | --- | --- |
+| **README**（本文） | 特性、技术栈、目录结构、使用与部署概览 | 仓库访客 |
+| [**博客书写规范**](https://blog.wunai.top/zh/groups/博客书写规范/) | 单一信息源：全部约定、Frontmatter 字段表、Markdown 扩展能力、界面与视觉约定、坑点 | 作者与 AI 助手 |
+| [**博客维护指南**](https://blog.wunai.top/zh/groups/维护指南/) | 任务导向的操作手册：改内容 / 加友链 / 改样式的具体步骤，发布流程与「症状 → 排查路径」速查表 | 作者本人 |
+
+源文件路径：
+
+```
+my-app/content/zh/posts/博客书写规范/    # _index.md + 规范与流程.md + 扩展与运维.md
+my-app/content/zh/posts/维护指南/        # _index.md + 日常维护.md + 发布与排错.md
+```
+
+> **三份文档需同步维护。** 改动使其中某份的描述失效时，要在同一次推送里一并更新；
+> 如果确实不需要更新，在提交信息里显式说明原因。
+> 规则与判定标准写在 `my-app/AGENTS.md`。
 
 ---
 
