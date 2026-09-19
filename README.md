@@ -54,7 +54,7 @@
 - 文章卡片右侧缩略图：优先 frontmatter 的 `cover.image`，没写封面则自动取正文第一张图；取不到就不渲染图片（见[性能与可访问性](#性能与可访问性)）
 - 顶栏：三块——品牌区（主题切换 + 大号 logo + 闪烁光标 + 「About…… / all posts →」小字行）、友链、右侧图片区（见 `components/Header.tsx`）
 - 页脚：欢迎语 + 七张联系方式卡片（邮箱 / GitHub / 本站仓库 / 哔哩哔哩 / YouTube / 微信 / Discord）+ 设置与语言切换卡片（数据在 `SITE.contact` 与 `lib/site.ts` 的 `i18n`）
-- 首页：三屏**吸附式**（scroll-snap）——首屏问候 / 更新内容（最近 5 次提交）/ 随便看看（交错卡片 + 全部文章入口），右侧分页指示点可点击跳屏
+- 首页：三屏**吸附式**（scroll-snap）——首屏问候 / 更新内容（最近 5 次提交）/ 随便看看（交错卡片 + 全部文章入口），右侧分页指示点可点击跳屏；三屏都装得下视口时用 `mandatory` 强吸，否则退为 `proximity` 并做「只向前」的辅助吸附
 - 文章页单栏居中，无侧栏；文章目录 / 阅读进度 / 回到顶部以浮动导航形式提供
 - 阅读时顶栏自动隐藏（滚过 120px 后上移，把整屏留给正文），双击（鼠标或触屏）缓缓滑出；回到顶部自动恢复
 - 正文阅读面：半透底；**毛玻璃只在 ≥1024px 启用**（长文上万像素，模糊层会吃几十 MB 显存，手机上会表现为文章页打不开）
@@ -117,6 +117,7 @@
 │   │   ├── ReadingHeader.tsx       # 阅读时顶栏自动隐藏（滚过阈值）+ 双击滑出
 │   │   ├── GroupCard.tsx           # 卡组卡片（背后叠层 + 跟随指针的光斑）
 │   │   ├── PageIndicator.tsx       # 首页右侧分页指示点
+│   │   ├── HomeSnap.tsx            # 首页吸附加力（mandatory / 向前辅助吸附）
 │   │   ├── ScrollReveal.tsx        # 滚动到位后渐入（IntersectionObserver；首页已不再使用但保留）
 │   │   ├── SiteSettings.tsx        # 设置页客户端组件（读写 localStorage 并同步到 <html>）
 │   │   ├── Header.tsx / Footer.tsx / PostCard.tsx / PostNav.tsx

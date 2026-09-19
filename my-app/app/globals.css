@@ -763,6 +763,18 @@ html:has(.home-pager) {
   scroll-padding-top: var(--header-h);
 }
 
+/* 加强吸附：三屏都装得下视口时，HomeSnap 会把 html 的 data-snap 设为 strong，
+   这里升到 mandatory —— 最强的吸附强度。
+
+   为什么必须由 JS 判断，而不能直接写 mandatory：
+   mandatory 下滚动容器只能停在吸附点上，一旦某屏高于视口，
+   那一屏的中段就再也滚不到，读者会被卡在屏起点。
+   桌面三屏都放得下，可以强吸；手机上「随便看看」是单列、超过一屏，
+   那时维持 proximity，改由 HomeSnap 做「向前拉一把」的辅助吸附。 */
+html:has(.home-pager)[data-snap="strong"] {
+  scroll-snap-type: y mandatory;
+}
+
 .home-pager { display: flex; flex-direction: column; }
 
 /* 每屏高度 = 一屏减去常驻顶栏。用 svh 而非 vh：

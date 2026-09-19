@@ -6,6 +6,7 @@ import {
   type Lang,
 } from "@/lib/content";
 import PageIndicator from "@/components/PageIndicator";
+import HomeSnap from "@/components/HomeSnap";
 import { Icon } from "@iconify/react/offline";
 import { icons } from "@/lib/icons";
 
@@ -21,8 +22,11 @@ import { icons } from "@/lib/icons";
  * 1. 吸附写在 <html> 上的 scroll-snap-type: y proximity（见 globals.css），
  *    而不是另建一个 100vh 的内部滚动容器。原因是页脚（语言切换/设置）在首页
  *    之后，如果让首页独占滚动，页脚会被永久挡住够不到。
- *    用 proximity 而非 mandatory：mandatory 在内容比视口高时会把页面“卡住”，
- *    读者翻不到后半段，也够不到页脚。
+ *    强度分两档，由 HomeSnap 判定：
+ *    · 三屏都装得下视口 → data-snap="strong"，升到 mandatory（最强吸附）；
+ *    · 有屏超过视口（手机上「随便看看」是单列）→ 保持 proximity，
+ *      并由 HomeSnap 做“向前拉一把”的辅助吸附。二选一都是为了避免
+ *      mandatory 把长内容的中段卡住、以及把页脚封在外面。
  *
  * 2. 每屏高度取 calc(100svh - var(--header-h))，而不是 100vh：
  *    顶栏是 sticky 常驻的，扣掉它才能让每屏刚好填满可见区域；
@@ -129,6 +133,12 @@ export default async function HomePage({ params }: { params: Promise<{ lang: str
 
       {/* 三屏都在时给出三个点；没有更新数据就只有两屏 */}
       <PageIndicator count={updates.length > 0 ? 3 : 2} label={t.pageNav} />
+
+      {/* 吸附加力：三屏都放得下就升到 mandatory，否则做向前辅助吸附 */}
+      <HomeSnap />
+
+      {/* 吸附加力：三屏都放得下就升到 mandatory，否则做向前辅助吸附 */}
+      <HomeSnap />
     </div>
   );
 }
