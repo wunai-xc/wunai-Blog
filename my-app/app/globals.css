@@ -434,6 +434,10 @@ html[data-font-scale="1.30"] { font-size: clamp(16.9px, 3.38vw, 20.8px); }
   grid-template-columns: 44px auto;
   column-gap: 12px;
   align-content: center;
+  /* 关键：让第一行的「主题切换」与 logo 在垂直方向互相对齐。
+     不写 align-items 时默认 stretch，两者会被拉成不同高度，
+     图标就会看起来偏上或偏下。 */
+  align-items: center;
   padding-right: 20px;
   flex: 0 0 auto;
   min-width: 0;
@@ -452,7 +456,7 @@ html[data-font-scale="1.30"] { font-size: clamp(16.9px, 3.38vw, 20.8px); }
   width: 100%;
   height: 100%;
   justify-content: center;
-  font-size: 1.05rem;
+  font-size: 1.15rem;
 }
 .brand-text { grid-column: 2; grid-row: 1; min-width: 0; }
 
@@ -461,7 +465,8 @@ html[data-font-scale="1.30"] { font-size: clamp(16.9px, 3.38vw, 20.8px); }
   display: inline-flex;
   align-items: center;
   color: var(--fg);
-  font-size: clamp(1.5rem, 3.4vw, 2.15rem);
+  /* 放大 logo：上限从 2.15rem 提到 2.6rem，同时抬高最小与中间值 */
+  font-size: clamp(1.75rem, 4.2vw, 2.6rem);
   font-weight: 800;
   line-height: 1.1;
   letter-spacing: -0.02em;
@@ -512,11 +517,15 @@ html[data-font-scale="1.30"] { font-size: clamp(16.9px, 3.38vw, 20.8px); }
 }
 .all-posts:hover { color: var(--accent); text-decoration: underline; }
 
-/* ---------- ② 友链 ---------- */
+/* ---------- ② 友链 ----------
+   margin-left: auto 把整块推到最右（紧贴图片区）。
+   有 auto 外边距时，flex 的剩余空间会先被它吃掉，
+   .navbar 上的 justify-content 在这条轴上就不再起作用，所以右靠是确定的。 */
 .friends {
   display: flex;
   align-items: center;
-  padding: 0 16px;
+  margin-left: auto;
+  padding: 0 8px;
   flex: 0 0 auto;
 }
 .friends-link {
@@ -524,16 +533,17 @@ html[data-font-scale="1.30"] { font-size: clamp(16.9px, 3.38vw, 20.8px); }
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 3px;
-  padding: 8px 14px;
+  gap: 1px;
+  padding: 4px 7px;
   color: var(--fg);
   white-space: nowrap;
   border-radius: 0;
 }
 .friends-link:hover { background: var(--card); text-decoration: none; }
-.friends-icon { display: block; flex-shrink: 0; }
+/* 图标与文字都收小：友链是次要入口，不该与品牌争视觉重量 */
+.friends-icon { display: block; flex-shrink: 0; width: 1.3em; height: 1.3em; }
 .friends-label {
-  font-size: 11px;
+  font-size: 10px;
   line-height: 1;
   color: var(--muted);
 }
@@ -2354,9 +2364,10 @@ html.dark .katex-error { color: #fca5a5; }
   :root { --header-h: 78px; }
   .navbar { padding-left: 14px; }
   .brand { padding-right: 14px; }
-  .friends { padding: 0 8px; }
-  .friends-link { padding: 7px 9px; }
-  .friends-icon { width: 1.6em; height: 1.6em; }
+  /* 友链在窄屏不再单独改图标尺寸，沿用基准的 1.3em；
+     否则断点里的值反而比基准大。 */
+  .friends { padding: 0 6px; }
+  .friends-link { padding: 5px 6px; }
   .friends-label { font-size: 10px; }
   .icon-btn { padding: 5px; font-size: 0.85rem; }
   .image-placeholder { width: 140px; }
@@ -2404,9 +2415,8 @@ html.dark .katex-error { color: #fca5a5; }
   .brand-switch .icon-btn { padding: 4px; }
   .tagline { font-size: 10px; }
   .all-posts { font-size: 11px; }
-  .friends { padding: 0 5px; }
-  .friends-link { padding: 6px 7px; }
-  .friends-icon { width: 1.35em; height: 1.35em; }
+  .friends { padding: 0 4px; }
+  .friends-link { padding: 4px 5px; }
   .friends-label { font-size: 9px; }
   .image-placeholder { width: 80px; }
 

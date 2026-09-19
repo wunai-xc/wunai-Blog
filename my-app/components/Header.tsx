@@ -61,8 +61,8 @@ export default function Header({ lang }: { lang: Lang }) {
             <Icon
               icon={icons["mdi:account-multiple-outline"]}
               className="friends-icon"
-              width="1.9em"
-              height="1.9em"
+              width="1.3em"
+              height="1.3em"
             />
             <span className="friends-label">{t.links}</span>
           </a>
