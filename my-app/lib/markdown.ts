@@ -12,7 +12,19 @@ import rehypeStringify from "rehype-stringify";
 import remarkRehype from "remark-rehype";
 // mhchem 扩展：为 KaTeX 注册 \ce{} 化学方程式语法（ESM 副作用导入，挂载到共享 katex 实例）
 import "katex/contrib/mhchem";
-import type { Post } from "./content";
+import type { Lang } from "./content";
+
+/* renderMarkdown 实际用到的最小字段。
+   用最小形状而不是 Post：独立页面（如 about）就不必伪装出
+   tags / wordCount / isAI 这些与它无关的字段；而 Post 结构上天然满足它，
+   所以文章页的调用一行都不用改。 */
+export interface MarkdownSource {
+  lang: Lang;
+  /** 用于把相对路径的图片解析成 /<lang>/posts/<slug>/<src>；独立页面请用绝对路径 */
+  slug: string;
+  content: string;
+  references?: { title: string; url?: string; author?: string; year?: string }[];
+}
 
 // KaTeX 自定义宏：常用数学符号简写
 const KATEX_MACROS: Record<string, string> = {
@@ -89,11 +101,11 @@ function remarkCustomShortcodes() {
 }
 
 // 图片懒加载 + 相对路径解析
-function rehypeImages(post: Post) {
+function rehypeImages(src: Pick<MarkdownSource, "lang" | "slug">) {
   return (tree: any) => {
     walk(tree, "element", (node: any) => {
       if (node.tagName === "img") {
-        const src = node.properties?.src || "";
+        const srcAttr = node.properties?.src || "";
         node.properties = node.properties || {};
         node.properties.loading = "lazy";
         node.properties.decoding = "async";
@@ -101,8 +113,8 @@ function rehypeImages(post: Post) {
            不少图床与站点按 Referer 做防盗链，带上来源会被直接拒绝，
            表现就是「外链图片怎么都不显示」；no-referrer 能避掉这一类。 */
         node.properties.referrerPolicy = "no-referrer";
-        if (!src.startsWith("http") && !src.startsWith("/")) {
-          node.properties.src = `/${post.lang}/posts/${post.slug}/${src}`;
+        if (!srcAttr.startsWith("http") && !srcAttr.startsWith("/")) {
+          node.properties.src = `/${src.lang}/posts/${src.slug}/${srcAttr}`;
         }
         if (!node.properties.alt) node.properties.alt = "";
       }
@@ -111,7 +123,7 @@ function rehypeImages(post: Post) {
         // .md 相对链接 -> 文章链接
         if (href.endsWith(".md") && !href.startsWith("http")) {
           const target = href.replace(/\.md$/, "");
-          node.properties.href = `/${post.lang}/posts/${target}/`;
+          node.properties.href = `/${src.lang}/posts/${target}/`;
         }
       }
     });
@@ -222,7 +234,7 @@ export function extractToc(html: string): { id: string; text: string; level: num
   return toc;
 }
 
-export async function renderMarkdown(post: Post): Promise<string> {
+export async function renderMarkdown(src: MarkdownSource): Promise<string> {
   const file = await unified()
     .use(remarkParse)
     .use(remarkGfm)
@@ -236,17 +248,17 @@ export async function renderMarkdown(post: Post): Promise<string> {
     .use(rehypeKatex, { throwOnError: false, errorColor: "#cc0000", macros: KATEX_MACROS, strict: false })
     .use(rehypeSlug)
     .use(rehypeAutolinkHeadings, { behavior: "wrap" })
-    .use(rehypeImages(post) as any)
+    .use(rehypeImages(src) as any)
     .use(rehypeXssFilter as any)
     .use(rehypeCjkOpt as any)
     .use(rehypeStringify, { allowDangerousHtml: true })
-    .process(post.content);
+    .process(src.content);
 
   let html = String(file);
 
   // 参考文献列表（如 frontmatter 有 references）
-  if (post.references && post.references.length) {
-    const items = post.references
+  if (src.references && src.references.length) {
+    const items = src.references
       .map((r, i) => {
         const title = r.url ? `<a href="${r.url}" target="_blank" rel="noopener">${r.title}</a>` : r.title;
         const meta = [r.author, r.year].filter(Boolean).join(", ");

@@ -1,4 +1,4 @@
-import { SITE, getAboutPost, type Lang } from "../lib/content";
+import { SITE, getPage, type Lang } from "../lib/content";
 import { Icon } from "@iconify/react/offline";
 import { icons } from "@/lib/icons";
 import ThemeToggle from "./ThemeToggle";
@@ -20,13 +20,11 @@ import HeaderIntro from "./HeaderIntro";
 export default function Header({ lang }: { lang: Lang }) {
   const t = SITE.i18n[lang];
   const isZh = lang === "zh";
-  /* 「About……」要指向「关于」文章本身。
-     首页已改成首屏问候 + 更新 + 推荐三屏，不再渲染关于正文，
-     所以这里不能再指回站点根路径（那会变成点了没反应）。 */
-  const about = getAboutPost(lang);
-  const aboutHref = about
-    ? `/${lang}/posts/${encodeURIComponent(about.slug)}/`
-    : `/${lang}/posts/`;
+  /* 「About……」指向「关于」独立页面 /<lang>/about/（正文在 content/<lang>/about.md）。
+     与 `about: true` 的那篇文章不是一回事：那篇（你好世界.md）首页已不再渲染，
+     现在 `about: true` 只起到「不进首页展示位」的作用。
+     页面文件缺失时（getPage 返回 undefined）回退到文章列表，避免出现死链。 */
+  const aboutHref = getPage(lang, "about") ? `/${lang}/about/` : `/${lang}/posts/`;
 
   return (
     <header className="site-header">

@@ -401,6 +401,48 @@ export function getAboutPost(lang: Lang): Post | undefined {
   return getPosts(lang).find((p) => p.about);
 }
 
+/* ===== 独立页面 =====
+
+   content/<lang>/<name>.md，如 about。
+
+   与「文章」的区别：不进文章列表 / 归档 / 标签 / 分类 / 搜索索引 / RSS，
+   也没有 date、tags、author 这些字段 —— 它就是一个用 Markdown 写的固定页面。
+   与 content/<lang>/posts/ 下的文件完全隔离，不会互相干扰。 */
+export interface Page {
+  lang: Lang;
+  /** 文件名（不含 .md），也是路由名 */
+  name: string;
+  title: string;
+  description?: string;
+  content: string;
+  references?: PostFrontmatter["references"];
+}
+
+const _pageCache: Record<string, Page | null> = {};
+
+/** 读一个独立页面；文件不存在时返回 undefined（由调用方决定是否 notFound） */
+export function getPage(lang: Lang, name: string): Page | undefined {
+  const key = `${lang}/${name}`;
+  if (!(key in _pageCache)) {
+    const file = path.join(CONTENT_ROOT, lang, `${name}.md`);
+    if (!fs.existsSync(file)) {
+      _pageCache[key] = null;
+    } else {
+      const { data, content } = readMarkdown(file);
+      const fm = data as PostFrontmatter;
+      _pageCache[key] = {
+        lang,
+        name,
+        title: fm.title || name,
+        description: fm.description || fm.summary,
+        content,
+        references: fm.references,
+      };
+    }
+  }
+  return _pageCache[key] ?? undefined;
+}
+
 export interface ChangelogEntry {
   /** 短 sha */
   sha: string;

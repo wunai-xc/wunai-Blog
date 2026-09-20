@@ -2539,7 +2539,10 @@ html.dark .katex-error { color: #fca5a5; }
 .group-header { margin-bottom: 8px; padding-bottom: 14px; border-bottom: 1px solid var(--border); }
 .group-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
 .group-header .page-title { margin: 0 0 8px; font-size: 1.6rem; }
-.group-description { margin: 0 0 10px; color: var(--muted); line-height: 1.7; max-width: 46em; }
+/* 页面描述段：卡组页的说明、独立页面（如「关于」）标题下的一句话。
+   同一个样式，两个名字 —— 让调用处各自念得通。 */
+.group-description,
+.page-description { margin: 0 0 10px; color: var(--muted); line-height: 1.7; max-width: 46em; }
 
 /* 组内文章列表：带序号，序号即组内顺序 */
 .group-posts { list-style: none; margin: 0; padding: 0; counter-reset: gp; }

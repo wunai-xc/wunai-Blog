@@ -1,5 +1,5 @@
 import { MetadataRoute } from "next";
-import { getGroups, getPosts, type Lang } from "../lib/content";
+import { getGroups, getPage, getPosts, type Lang } from "../lib/content";
 import { SITE } from "../lib/site";
 
 export const dynamic = "force-static";
@@ -16,6 +16,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     entries.push({ url: `${base}/${lang}/archives/` });
     entries.push({ url: `${base}/${lang}/links/` });
     entries.push({ url: `${base}/${lang}/settings/` });
+    // 独立页面：存在才收录，避免 sitemap 里出现 404 链接
+    if (getPage(lang, "about")) entries.push({ url: `${base}/${lang}/about/` });
     for (const g of getGroups(lang)) {
       entries.push({ url: `${base}/${lang}/groups/${encodeURIComponent(g.slug)}/` });
     }
