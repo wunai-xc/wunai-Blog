@@ -7,6 +7,7 @@ import {
 import { renderMarkdown, extractToc } from "@/lib/markdown";
 import PostBody from "@/components/PostBody";
 import PostNav from "@/components/PostNav";
+import ArticleFontSize from "@/components/ArticleFontSize";
 import ReadingHeader from "@/components/ReadingHeader";
 import Comments from "@/components/Comments";
 import PrintControls from "@/components/PrintControls";
@@ -75,7 +76,9 @@ export default async function PostPage({ params }: { params: Promise<{ lang: str
   return (
     <div className="post-layout">
       {/* 单栏：正文居中，不再有「全部文章」侧栏 */}
-      <article className="post-content">
+      {/* data-article-font：给正文字号控件用的作用域标记。只有本页带这个属性，
+          所以字号只作用在正文（见 globals.css），顶栏 / 页脚 / 其他页面不受影响。 */}
+      <article className="post-content" data-article-font>
         <nav className="breadcrumbs">
           <a href={`/${lang}/`}>{t.home}</a>
           <span>/</span>
@@ -146,6 +149,9 @@ export default async function PostPage({ params }: { params: Promise<{ lang: str
 
       {/* 浮动导航：左侧目录按钮 + 右侧进度条 + 回到顶部 */}
       <PostNav items={toc} />
+
+      {/* 左边缘第二个浮动按钮：正文字号（排在目录按钮下面一格） */}
+      <ArticleFontSize />
 
       {/* 阅读时的顶栏行为：滚入正文自动隐藏，双击呼出 */}
       <ReadingHeader />

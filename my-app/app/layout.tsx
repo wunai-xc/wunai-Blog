@@ -58,6 +58,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     var m = localStorage.getItem('motion');
     if (m) el.setAttribute('data-motion', m);
 
+    /* 文章正文字号：值只在文章详情页生效（CSS 里限定在 .post-content[data-article-font]
+       内部消费），但写在 <html> 上，这样首次绘制前就能放好，不会先画一遍默认字号。
+       键名与 components/ArticleFontSize.tsx 一致。 */
+    var af = parseFloat(localStorage.getItem('articlefont') || '');
+    if (af >= 5 && af <= 32) el.style.setProperty('--article-fs-pref', af + 'px');
+
     // 自定义主色：两个变体在设置页保存时已算好，这里直接写行内变量
     if (pal === 'custom') {
       var cl = localStorage.getItem('accentL');
