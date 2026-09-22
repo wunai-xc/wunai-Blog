@@ -2,10 +2,12 @@ import { Icon } from "@iconify/react/offline";
 import { icons } from "@/lib/icons";
 import { SITE, type Lang } from "@/lib/content";
 
-/* ===== 文章页左边缘的「搜索 / 标签」快捷入口 =====
+/* ===== 「搜索 / 标签」浮动按钮（文章列表页 /<lang>/posts/）=====
 
-   与目录按钮、正文字号按钮同处一列浮动按钮（外观与定位见 globals.css
-   的「文章页左边缘的浮动按钮列」）。
+   与文章详情页的目录、正文字号按钮同一套外观与格位算法（见 globals.css
+   的「左边缘的浮动按钮列」），只是两页各一列：
+     列表页 = 搜索 → 标签（本组件）
+     详情页 = 目录 → 正文字号
 
    这两个是 <a> 而不是带面板的按钮 —— 它们指向已有的两个页面
    （/<lang>/search/、/<lang>/tags/），点一下就到，不需要任何客户端状态：

@@ -8,7 +8,6 @@ import { renderMarkdown, extractToc } from "@/lib/markdown";
 import PostBody from "@/components/PostBody";
 import PostNav from "@/components/PostNav";
 import ArticleFontSize from "@/components/ArticleFontSize";
-import ArticleQuickLinks from "@/components/ArticleQuickLinks";
 import ReadingHeader from "@/components/ReadingHeader";
 import Comments from "@/components/Comments";
 import PrintControls from "@/components/PrintControls";
@@ -151,8 +150,8 @@ export default async function PostPage({ params }: { params: Promise<{ lang: str
       {/* 浮动导航：左侧目录按钮 + 右侧进度条 + 回到顶部 */}
       <PostNav items={toc} />
 
-      {/* 左边缘浮动按钮列：目录（PostNav 内）→ 搜索 → 标签 → 正文字号 */}
-      <ArticleQuickLinks lang={lang} />
+      {/* 左边缘浮动按钮：目录（PostNav 内）→ 正文字号。
+          搜索 / 标签在文章列表页，不在这里。 */}
       <ArticleFontSize />
 
       {/* 阅读时的顶栏行为：滚入正文自动隐藏，双击呼出 */}

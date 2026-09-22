@@ -1,6 +1,7 @@
 import { getGroups, getLoosePosts, type Lang, type Post, type PostGroup } from "@/lib/content";
 import PostCard from "@/components/PostCard";
 import GroupCard from "@/components/GroupCard";
+import ArticleQuickLinks from "@/components/ArticleQuickLinks";
 
 export const dynamicParams = false;
 
@@ -34,6 +35,11 @@ export default async function PostsPage({ params }: { params: Promise<{ lang: st
           <PostCard key={e.post.slug} post={e.post} lang={lang} />
         )
       )}
+
+      {/* 左边缘浮动按钮：搜索 / 标签。
+          放在这一页的理由：列表页本身就是「文章太多、想快点找到某一篇」的场景，
+          而搜索页与标签云此前在界面上没有任何入口（SITE.menu 是死数据）。 */}
+      <ArticleQuickLinks lang={lang} />
     </div>
   );
 }
