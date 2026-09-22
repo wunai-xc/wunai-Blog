@@ -8,6 +8,8 @@ import mdiHandWaveOutline from "@iconify/icons-mdi/hand-wave-outline";
 import mdiFormatFontSizeDecrease from "@iconify/icons-mdi/format-font-size-decrease";
 import mdiFormatFontSizeIncrease from "@iconify/icons-mdi/format-font-size-increase";
 import mdiFormatSize from "@iconify/icons-mdi/format-size";
+import mdiMagnify from "@iconify/icons-mdi/magnify";
+import mdiTagMultipleOutline from "@iconify/icons-mdi/tag-multiple-outline";
 import mdiTranslate from "@iconify/icons-mdi/translate";
 import mdiTableOfContents from "@iconify/icons-mdi/table-of-contents";
 import mdiArrowUp from "@iconify/icons-mdi/arrow-up";
@@ -52,6 +54,8 @@ export const icons = {
   "mdi:format-font-size-decrease": mdiFormatFontSizeDecrease,
   "mdi:format-font-size-increase": mdiFormatFontSizeIncrease,
   "mdi:format-size": mdiFormatSize,
+  "mdi:magnify": mdiMagnify,
+  "mdi:tag-multiple-outline": mdiTagMultipleOutline,
   "mdi:translate": mdiTranslate,
   "mdi:table-of-contents": mdiTableOfContents,
   "mdi:arrow-up": mdiArrowUp,

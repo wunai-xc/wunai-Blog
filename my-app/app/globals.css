@@ -206,8 +206,9 @@ html[data-page-hidden] *::after {
      用 @property 注册成 <length> 类型，它才能被 transition 平滑插值；
      不注册的话自定义属性变化是阶跃的，控件会“跳”一下。 */
   --chrome-top: var(--header-h);
-  /* 左边缘第二个浮动按钮（正文字号）的下移量：目录按钮 34px 高 + 8px 间隙。
-     手机端目录按钮缩到 30px，断点里改成 38px。 */
+  /* 文章页左边缘浮动按钮列的格距（= 上一格按钮高 + 8px 间隙）。
+     该列自上而下：目录 → 搜索 → 标签 → 正文字号；
+     手机端按钮缩到 30px，断点里改成 38px。 */
   --fab-step: 42px;
   --reading-border: rgba(60, 20, 20, 0.07);
   --reading-inner-glow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
@@ -1925,10 +1926,17 @@ html.dark .author-badge.ai { background: #450a0a; color: #fca5a5; }
   max-width: calc(100vw - 80px);
 }
 
-/* ===== 目录按钮 / 正文字号按钮（固定在 header 左下方，80% 透明）
-   两者共用同一套外观与定位：字号按钮排在目录按钮下面一格（--fab-step），
-   文章没有目录时它自动补到第一格。面板样式见下方「正文字号面板」。 ===== */
+/* ===== 文章页左边缘的浮动按钮列 =====
+   自上而下：目录 → 搜索 → 标签 → 正文字号，共用同一套外观。
+
+   位置算法：top = --chrome-top + 1px + N × --fab-step。
+   目录只在有标题的文章里渲染（PostNav 里受 hasToc 控制），所以它不在场时
+   其余三个要各上提一格 —— 这个“整体移位”由下面 .post-layout:has(.toc-fab)
+   那一组统一处理：用 :has() 而不是相邻兄弟选择器（~）是因为搜索/标签/字号
+   三者互不依赖、各自也要单独取位，串成链的话每加一个按钮都要重算一次。 */
 .toc-fab,
+.search-fab,
+.tags-fab,
 .font-fab {
   position: fixed;
   left: 12px;
@@ -1949,14 +1957,24 @@ html.dark .author-badge.ai { background: #450a0a; color: #fca5a5; }
               background 0.2s var(--ease-silk),
               border-color 0.2s var(--ease-silk);
 }
+/* 搜索 / 标签是链接，不是按钮：去掉链接默认色与下划线，外观与按钮完全一致 */
+.search-fab,
+.tags-fab { text-decoration: none; color: var(--fg); }
 .toc-fab:hover,
+.search-fab:hover,
+.tags-fab:hover,
 .font-fab:hover {
   transform: scale(1.06);
   border-color: var(--accent);
   background: color-mix(in srgb, var(--bg) 50%, transparent);
   box-shadow: 0 4px 16px rgba(0,0,0,0.15);
 }
+/* 图标跟随 currentColor，hover 时变主色 */
+.search-fab:hover,
+.tags-fab:hover { color: var(--accent); }
 .toc-fab:active,
+.search-fab:active,
+.tags-fab:active,
 .font-fab:active { transform: scale(0.94); }
 
 /* 纯 CSS hamburger 三条杠图标 */
@@ -2047,18 +2065,24 @@ html.dark .author-badge.ai { background: #450a0a; color: #fca5a5; }
 .toc-panel-list a:hover .toc-bullet { background: var(--accent); transform: scale(1.4); }
 .toc-panel-list a.active .toc-bullet { background: var(--accent); transform: scale(1.6); }
 
-/* ===== 正文字号按钮 + 面板 =====
-   按钮本体与目录按钮共用外观（见上方 .toc-fab, .font-fab），
-   这里只写「排在目录按钮下面一格」与面板。
-   两个 top 都挂在 --chrome-top 上：阅读时顶栏隐藏，它们一起上移。 */
-.toc-fab ~ .font-fab { top: calc(var(--chrome-top) + 1px + var(--fab-step)); }
+/* ===== 列位：四个按钮各占哪一格 =====
+   无目录时：搜索 = 第 1 格，标签 = 第 2 格，字号 = 第 3 格；
+   目录在场时全部下移一格（目录自己占第 1 格）。
+   面板跟着自己那个按钮走（44px = 按钮高 34px + 10px 间隙）。 */
+.search-fab { top: calc(var(--chrome-top) + 1px); }
+.tags-fab { top: calc(var(--chrome-top) + 1px + var(--fab-step)); }
+.font-fab { top: calc(var(--chrome-top) + 1px + var(--fab-step) * 2); }
+
+.post-layout:has(.toc-fab) .search-fab { top: calc(var(--chrome-top) + 1px + var(--fab-step)); }
+.post-layout:has(.toc-fab) .tags-fab { top: calc(var(--chrome-top) + 1px + var(--fab-step) * 2); }
+.post-layout:has(.toc-fab) .font-fab { top: calc(var(--chrome-top) + 1px + var(--fab-step) * 3); }
+
 .font-fab.open { color: var(--accent); border-color: var(--accent); }
 
 .font-panel {
   position: fixed;
   left: 12px;
-  /* 44px = 目录按钮 34px 高 + 10px 间隙，与 .toc-panel 对齐 */
-  top: calc(var(--chrome-top) + 44px);
+  top: calc(var(--chrome-top) + 44px + var(--fab-step) * 2);
   width: 260px;
   background: var(--bg);
   border: 1px solid var(--border);
@@ -2071,7 +2095,7 @@ html.dark .author-badge.ai { background: #450a0a; color: #fca5a5; }
               transform 0.3s var(--ease-elastic);
   z-index: 49;
 }
-.toc-fab ~ .font-panel { top: calc(var(--chrome-top) + 44px + var(--fab-step)); }
+.post-layout:has(.toc-fab) .font-panel { top: calc(var(--chrome-top) + 44px + var(--fab-step) * 3); }
 .font-panel.open {
   opacity: 1; pointer-events: auto;
   transform: translateY(0) scale(1);
@@ -2361,10 +2385,10 @@ html.dark .author-badge.ai { background: #450a0a; color: #fca5a5; }
 /* ===== 浮动导航响应式 =====
    注意：这里的 top 一律挂在 --header-h 上，改顶栏高度时不需要动本段。 */
 @media (max-width: 768px) {
-  /* 目录按钮缩到 30px 高，第二个浮动按钮的步进跟着改 */
+  /* 浮动按钮缩到 30px 高，按钮列的格距跟着改 */
   :root { --fab-step: 38px; }
   .sticky-heading { padding: 0 16px 0 48px; }
-  .toc-fab, .font-fab { left: 8px; width: 30px; height: 30px; border-radius: 0; }
+  .toc-fab, .search-fab, .tags-fab, .font-fab { left: 8px; width: 30px; height: 30px; border-radius: 0; }
   .hb-icon { width: 14px; height: 10px; }
   .toc-panel, .font-panel { left: 8px; width: 220px; }
   .scroll-rail { right: 4px; width: 22px; }
@@ -2373,7 +2397,7 @@ html.dark .author-badge.ai { background: #450a0a; color: #fca5a5; }
 }
 @media (max-width: 480px) {
   .sticky-heading { padding: 0 14px 0 44px; }
-  .toc-fab, .font-fab { left: 6px; }
+  .toc-fab, .search-fab, .tags-fab, .font-fab { left: 6px; }
   .toc-panel, .font-panel { left: 6px; }
   .scroll-rail { width: 18px; }
   .progress-dot-label { display: none; }
@@ -2424,6 +2448,13 @@ mark.search-highlight { background: var(--mark-bg); padding: 0 2px; border-radiu
 .term-cloud { display: flex; flex-wrap: wrap; gap: 8px; }
 .term-item { padding: 6px 14px; border: 1px solid var(--border); border-radius: 0; color: var(--fg); }
 .term-item:hover { background: var(--card); text-decoration: none; }
+/* 标签云里的文章数（分类云不用，那里没有计数） */
+.term-count {
+  margin-left: 6px;
+  font-size: 0.75em;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
 
 /* ===== Giscus ===== */
 .comments-section { margin-top: 40px; padding-top: 24px; border-top: 1px solid var(--border); }
@@ -2875,7 +2906,7 @@ html.dark .katex-error { color: #fca5a5; }
   .site-header, .site-footer, .post-nav, .comments-section, .breadcrumbs,
   .toc-fab-wrap, .scroll-rail, .back-to-top,
   .toc-fab, .toc-panel, .sticky-heading,
-  .font-fab, .font-panel,
+  .search-fab, .tags-fab, .font-fab, .font-panel,
   .bg-canvas,
   .hero-hint,
   .page-indicator,
