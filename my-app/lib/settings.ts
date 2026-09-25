@@ -19,7 +19,7 @@ export interface PaletteOption {
 
 /** 预设配色。真正的颜色定义在 globals.css（声明式、切主题不闪），这里只用于取数 */
 export const PALETTES: PaletteOption[] = [
-  { id: "blue", swatch: "#2563eb" },
+  { id: "blue", swatch: "#a94e30" },
   { id: "teal", swatch: "#0d9488" },
   { id: "violet", swatch: "#7c3aed" },
   { id: "green", swatch: "#16a34a" },
