@@ -489,8 +489,8 @@ npx wrangler pages deploy out --project-name=wunai-blog
   - **缩略图不能写 `aspect-ratio`**：高度要由文字那一侧决定、图跟着撑满；用宽高比定高的话，文字比图高时右侧会空一块
   - **缩略图内的 `img` 用 `position: absolute; inset: 0`** 而不是 `height: 100%`：百分比高度依赖父级确定高度，flex 拉伸下不够可靠
   - 图片落在卡片内边距（20/24px）以内，而角标线框是内缩 5px 的，所以图始终在**线框里面**，不会压到框线
-- 卡片（`.post-card`）的亚克力放在 `::after` 伪元素上，而不是直接加到卡片：卡片有 JS 驱动的行内 `transform`（鼠标 3D 倾斜）与 `transform-style: preserve-3d`，而 `backdrop-filter` 属于分组属性，与变换同元素会强制扁平化，子元素的 `translateZ(10px)` 深度会失效；放进伪元素两者才能共存。卡片自身保持 `background: transparent`，否则 `backdrop-filter` 会把卡片自己的底当作背景来模糊，不透出背后网格
-- 上下篇导航（`.post-nav a`）没有 3D 子元素，亚克力直接加在 `<a>` 上；hover 的 SVG 液态滤镜作用在合成结果之上，与毛玻璃不冲突。浮动的移动端目录面板（`.toc-panel`）刻意保持不透明：它覆盖在正文之上，透出正文会难以辨读
+- 卡片（`.post-card`）的材质放在 `::after` 伪元素上，卡片自身保持 `background: transparent`，让淡化的背景网格透过材质；文章列表不再用 JS 鼠标跟踪 3D 倾斜，悬停时仅短距离上移、边框与左侧内线变色。内容以 `position: relative; z-index: 1` 压在材质层上
+- 上下篇导航（`.post-nav a`）直接在 `<a>` 上绘制材质；按钮 hover 改为边框变色与短距离轴向位移，不再使用 SVG 液态滤镜。浮动的移动端目录面板保持不透明：它覆盖在正文之上，透出正文会难以辨读
 - 打印时卡片与阅读面的亚克力全部重置（`background: none`、取消 `backdrop-filter`、`position/z-index` 归零），避免 PDF 背景发灰或分页错乱
 - 角标用**一个伪元素叠 8 层 `background`**（4 条框边 + 4 条十字臂）画完，不增加 DOM。关键在于**没有任何恒定色段**：十字臂用 `--cn-h / --cn-v`（终点色→交点色→终点色，交点处满色），框边用 `--cn-e-tl-r / --cn-e-tl-d / --cn-e-br-l / --cn-e-br-u`（四条边各从所在交点角**单向**渐变到终点色），因此全图只有左上、右下两个交点最深。若框边写成“两端淡出、中间固定色”，边线中段会一直满色，就不是“只有交点最深”。颜色分主题：`--cn-color` 亮色 `#2563eb` 蓝 / 暗色 `#7f1d1d` 暗红，`--cn-end` 亮色 `#ffffff` 白 / 暗色 `#000000` 黑（终点接近底色，两个主题都是淡出效果）。`--cn-solid` 备用。**不能用 `border` 代替背景层**：伪元素必须保持 `inset: 0`，否则 `background-clip: border-box` 会裁掉十字伸出框外的部分。定位用 calc + 百分比镜像（`--cn-span = 100% - inset × 2`，下/右再减一个线宽）；内缩 5px、臂长 3.5px（臂长需比内缩短，否则臂尖会顶到元素自己的边框）。该层必须 `z-index: 1`：亚克力/光泽伪元素是 `z-index: 0` 且晚于 `::before` 绘制，不提升会被半透底盖淡；内容也是 `z-index: 1` 但晚于伪元素，文字仍在角标之上。打印时隐藏
 - **亮色主题带极淡暖红调**：`--bg` `#fffbfb`、`--card` `#fbf5f5`、`--border` `#e7dede`、`--muted` `#797070`，阅读面与卡片玻璃色也同步偏暖（`rgba(255,251,251,…)`）。只到“成片底色才能看出”的程度，文字色（`--fg`）不动以免影响可读性。暗色主题不变
@@ -505,7 +505,8 @@ npx wrangler pages deploy out --project-name=wunai-blog
 - 暗色下 `post-content::before`（顶部光泽层）直接 `display: none`：它在暗色已是全透明，留着只是白白的合成层
 - 主题在 `<head>` 中用一个内联脚本完成引导，避免深色模式闪烁（FOUC）
 - 评论区、Mermaid / ECharts / Graphviz / abc.js / SmilesDrawer 全部懒加载，仅在进入视口或正文实际用到时才请求
-- 动画统一基于 `transform` / `opacity`，并对系统「减弱动态效果」偏好做全局降级
+- 视觉采用暖纸底色与赭石强调色，卡片和面板保持直角；首页叠加低对比度几何网格与分隔线，悬停以边线和短距离位移反馈，取消跟随指针的 3D 倾斜与液态滤镜
+- 动画统一为单程淡入 / 平移，避免长文缩放；同时支持系统「减弱动态效果」偏好与站内动画关闭设置
 - 语义化结构：`header` / `main` / `article` / `nav`、面包屑、文章 JSON-LD 结构化数据
 
 **移动端后台省电**
@@ -513,7 +514,7 @@ npx wrangler pages deploy out --project-name=wunai-blog
 把页面挂到后台（切 App / 切标签页）时，为避免持续占用合成器与显存，做了三件事：
 
 1. **暂停全站 CSS 动画**：`app/layout.tsx` 里一段极短内联脚本在 `visibilitychange` / `pagehide` 时给 `<html>` 打上 `data-page-hidden`，CSS 据此 `animation-play-state: paused`。本站有多个无限循环动画（滑动图标浮动、进度圆点脉冲、加载图标旋转），挂后台时它们停摆；回前台自动恢复（暂停不重置进度，视觉无差异）。
-2. **去掉常驻 `will-change`**：原先 `.post-card` 与进度圆点脉冲层都写着 `will-change`，等于**永久**提升为合成层。列表页一屏十几张卡片、每张还带一个 `backdrop-filter` 图层，显存占用会成倍上涨。现在卡片只在 `:hover`（真正开始 3D 倾斜）时才提示提升，脉冲层依赖动画自身的合成层属性。
+2. **不常驻 `will-change`**：列表页一屏可能有十几张卡片，每张还带 `backdrop-filter` 层；永久提升为合成层会持续占用显存。文章卡片现在不做鼠标跟踪 3D 倾斜，hover 仅使用短距离位移、边线反馈；进度圆点依赖动画自身的合成层属性。
 3. **画布彻底停帧**：`InteractiveBackground` 除 `visibilitychange` 外还监听 `pagehide` / `pageshow`（移动端切 App 时 `visibilitychange` 不一定可靠）。另修正一处隐患：`stop()` 现在会把 `idle` 置为 true，否则 `wake()` 会因 `idle=false` 拒绝重启动循环，导致从后台返回后网格卡死。
 
 ---

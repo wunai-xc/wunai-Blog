@@ -1,15 +1,13 @@
 @import "tailwindcss";
 
-/* ===== 全局丝滑动画引擎 ===== */
-/* 更顺滑的缓动曲线（easeOutExpo / easeOutQuart） */
+/* ===== 全局动效引擎 =====
+   视觉方向：极简、几何、可预测。动效只改变位置、透明度与线条长度，
+   不使用液态滤镜、3D 倾斜或弹性缩放，避免界面像营销页一样喧闹。 */
 :root {
   --ease-silk: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
-  --ease-elastic: cubic-bezier(0.34, 1.56, 0.64, 1);
-  /* 刻式节拍：1 刻 = 50ms（对齐参考文章的 1gt = 0.05s），
-     入场动画按 10 刻 = 500ms 推进，每刻跳变一次 */
-  --tick: 50ms;
-  --enter-duration: calc(var(--tick) * 10);
+  --ease-elastic: cubic-bezier(0.22, 1, 0.36, 1);
+  --enter-duration: 0.55s;
 }
 
 /* 强制 GPU 加速 + 减少重排：所有元素默认过渡使用 transform/opacity */
@@ -19,32 +17,19 @@
   text-rendering: optimizeLegibility;
 }
 
-/* ===== 页面打开：文字从右向左滑入，按刻量化推进（阶梯式跳变） ===== */
+/* ===== 页面打开：短距离、低存在感的几何入场 ===== */
 @keyframes slide-in-from-right {
   0% {
-    transform: translateX(30px) scale(0.95);
+    transform: translateY(12px);
     opacity: 0;
   }
-  60% {
-    transform: translateX(0) scale(1);
-    opacity: 1;
-  }
-  70% {
-    transform: translateX(-4px) scale(1.005);
-  }
-  80% {
-    transform: translateX(2px) scale(1);
-  }
-  90% {
-    transform: translateX(-1px) scale(1);
-  }
   100% {
-    transform: translateX(0) scale(1);
+    transform: translateY(0);
     opacity: 1;
   }
 }
 
-/* 标题、段落、列表、引用等文字元素入场（按刻阶梯推进）。
+/* 标题、段落、列表、引用等文字元素入场（平滑单程）。
 
    填充模式用 backwards 而不是 both：
    both 会在动画结束后继续占着 transform，从而压过 hover 的位移
@@ -62,20 +47,15 @@
 .search-box,
 .toc a,
 .footer {
-  animation: slide-in-from-right var(--enter-duration) steps(10, end) backwards;
+  animation: slide-in-from-right 0.55s var(--ease-silk) backwards;
 }
 
-/* 卡片：**整块**入场，里面的文字跟着一起来。
-
-   之前只动画了卡片里的标题 / 摘要 / 元信息（`.post-card .title` 等），
-   卡片本体不动 —— 看到的就是“文字飞来飞去、卡片框不动”的割裂感；
-   而且下面那组 .post-card:nth-child(n) 的错位延迟因为目标选错而完全没生效。
-   现在改为动画卡片本体，内部文字不再单独动。 */
+/* 卡片整块入场，内部文字不单独动画。 */
 .post-card,
 .collection-card,
 .home-card,
 .update-item {
-  animation: slide-in-from-right var(--enter-duration) steps(10, end) backwards;
+  animation: slide-in-from-right 0.55s var(--ease-silk) backwards;
 }
 
 /* 错位入场：不同区块延迟不同，营造层次感 */
@@ -250,8 +230,6 @@ html[data-page-hidden] *::after {
   --card-acrylic-glow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
   --card-acrylic-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0) 30%);
   --card-acrylic-blur: 10px;
-  /* 按钮 hover 液态参数 */
-  --btn-liquid-scale: 0;
 }
 
 html.dark {
@@ -355,11 +333,8 @@ html[data-acrylic="off"] .site-footer {
 html[data-acrylic="off"] .post-content::before { display: none; }
 
 /* ===== 动画强度 =====
-   lite：只停“常驻的无限循环动画”与 hover 触发的旋转类（纯装饰），
-         入场与原过渡保留；
-   off：等同于 prefers-reduced-motion。
-   注意 hover 的液态脉冲（btn-liquid-pulse）只持续 0.6s 且需交互才触发，
-   所以 lite 下不动它。 */
+   lite：停用常驻装饰动画，入场与交互过渡保留；
+   off：等同于 prefers-reduced-motion。 */
 html[data-motion="lite"] .hero-hint svg,
 html[data-motion="lite"] .progress-dot.active .progress-dot-core::after,
 html[data-motion="lite"] .back-to-top:hover .back-top-ring,
@@ -645,8 +620,8 @@ html {
   .cursor { animation: none; }
 }
 
-/* ===== 可交互按钮：SVG 滤镜动效 ===== */
-/* 全局按钮基类：统一 hover 液态扭曲 + 辉光 + 点击深度 + 涟漪 */
+/* ===== 可交互按钮：几何线条动效 =====
+   hover 只改变边线、底色与极短的位移，保留清晰的几何边界。 */
 .friends-link, .icon-btn, .tag, .term-item, .post-nav a,
 .pagination a, .copy-btn, .pinned-badge, .author-badge,
 .search-box, .toc a, .breadcrumbs a {
@@ -654,45 +629,29 @@ html {
   transition: transform 0.35s var(--ease-silk),
               box-shadow 0.35s var(--ease-silk),
               background 0.35s var(--ease-silk),
-              opacity 0.35s var(--ease-silk),
-              filter 0.35s var(--ease-silk);
-  /* 不再常驻 will-change：此处选择器覆盖全站大量元素，
-     永久提升为合成层会持续占用显存，移动端尤其明显 */
+              opacity 0.35s var(--ease-silk);
 }
 
-/* Hover: SVG 液态滤镜 + 微浮起 + 辉光 */
+/* Hover：不缩放、不滤镜，只沿几何轴线轻微上移。 */
 .friends-link:hover, .icon-btn:hover,
 .tag:hover, .term-item:hover, .post-nav a:hover,
 .pagination a:hover, .copy-btn:hover,
 .toc a:hover, .breadcrumbs a:hover {
-  filter: url(#filter-liquid) url(#filter-glow);
-  transform: translateY(-2px) scale(1.03);
-  animation: btn-liquid-pulse 0.6s ease-out;
+  transform: translateY(-1px);
+  color: var(--accent);
+  border-color: var(--accent);
 }
 
-/* Active: 深度下陷 + 涟漪 */
+/* Active：短促的按压反馈。 */
 .friends-link:active, .icon-btn:active,
 .tag:active, .term-item:active, .post-nav a:active,
 .pagination a:active, .copy-btn:active {
-  filter: url(#filter-depth);
-  transform: translateY(0) scale(0.97);
-  transition: transform 0.08s ease, filter 0.08s ease;
+  transform: translateY(1px);
 }
 
-/* 液态脉冲关键帧：模拟表面波纹
-   注：filter 在两端的值相同且中间关键帧未声明，实为常量，
-   由 :hover 规则统一提供；在此重复声明会令脉冲期间每帧重算滤镜链 */
-@keyframes btn-liquid-pulse {
-  0%   { transform: translateY(0) scale(1); }
-  30%  { transform: translateY(-3px) scale(1.05); }
-  50%  { transform: translateY(-2px) scale(1.03); }
-  100% { transform: translateY(-2px) scale(1.03); }
-}
-
-/* Focus 键盘可达性：辉光 + 轮廓 */
+/* Focus 键盘可达性：直角轮廓。 */
 .friends-link:focus-visible, .icon-btn:focus-visible,
 .tag:focus-visible, .term-item:focus-visible, .post-nav a:focus-visible {
-  filter: url(#filter-glow);
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
@@ -704,40 +663,13 @@ html {
 }
 .icon-btn:hover { background: var(--card); opacity: 1; }
 
-/* 图标动态效果：hover 时太阳旋转、月亮轻微摆动、翻译图标翻转、字号图标缩放 */
+/* 图标动态效果：统一为一次性、短距离的几何位移。 */
 .icon-btn svg {
-  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: transform 0.3s var(--ease-silk);
   display: block;
 }
-.icon-btn:hover svg { transform: scale(1.15); }
-.icon-btn:active svg { transform: scale(0.9); }
-/* 主题切换：太阳旋转 */
-.icon-btn:has(svg[data-icon="mdi:weather-sunny"]):hover svg {
-  animation: icon-spin 1.2s linear infinite;
-}
-/* 主题切换：auto 模式图标翻转 */
-.icon-btn:has(svg[data-icon="mdi:theme-light-dark"]):hover svg {
-  animation: icon-flip 1.5s ease-in-out infinite;
-}
-/* 翻译图标：hover 水平翻转。
-   语言切换已移到页脚，所以这里同时覆盖 .footer-link，
-   让原先顶栏上的翻转动效在页脚照样保留。 */
-.icon-btn:has(svg[data-icon="mdi:translate"]):hover svg,
-.footer-link:has(svg[data-icon="mdi:translate"]):hover svg {
-  animation: icon-flip-h 1s ease-in-out infinite;
-}
-@keyframes icon-spin {
-  from { transform: rotate(0deg) scale(1.15); }
-  to { transform: rotate(360deg) scale(1.15); }
-}
-@keyframes icon-flip {
-  0%, 100% { transform: rotateY(0deg) scale(1.15); }
-  50% { transform: rotateY(180deg) scale(1.15); }
-}
-@keyframes icon-flip-h {
-  0%, 100% { transform: scaleX(1) scale(1.15); }
-  50% { transform: scaleX(-1) scale(1.15); }
-}
+.icon-btn:hover svg { transform: translateY(-1px); }
+.icon-btn:active svg { transform: translateY(1px); }
 
 /* ===== 滚动到位渐入（ScrollReveal） =====
    首页已改为三屏吸附、不再用它，但组件本身是通用工具、保留着，
@@ -846,13 +778,9 @@ html:has(.home-pager) .site-footer {
   gap: 4px;
   font-size: 12px;
   color: var(--muted);
-  animation: hint-bounce 2s ease-in-out infinite;
+  animation: none;
 }
 .hero-hint:hover { color: var(--accent); text-decoration: none; }
-@keyframes hint-bounce {
-  0%, 100% { transform: translate(-50%, 0); }
-  50%      { transform: translate(-50%, 6px); }
-}
 
 /* ---------- 第 2 / 3 屏共用的标题 ---------- */
 .section-title {
@@ -1076,8 +1004,6 @@ html:has(.home-pager) .site-footer {
   transition: transform 0.45s var(--ease-silk),
               box-shadow 0.45s var(--ease-silk),
               border-color 0.45s var(--ease-silk);
-  transform-style: preserve-3d;
-  backface-visibility: hidden;
   overflow: hidden;
   /* 正文与右侧缩略图并排。
      align-items: stretch 是关键：让缩略图的高度跟随卡片内容（文字）的高度，
@@ -1085,10 +1011,7 @@ html:has(.home-pager) .site-footer {
   display: flex;
   gap: 20px;
   align-items: stretch;
-  /* 常态不写 will-change：列表页一屏可能十几张卡片，
-     每张都带 backdrop-filter 图层，若再常驻提升合成层，
-     显存占用会成倍上涨（手机上直接表现为掉帧）。
-     鼠标移上去、真正开始 3D 倾斜时再提升即可。 */
+  /* 不常驻 will-change：列表页可能同时有很多卡片与亚克力图层。 */
 }
 
 /* 正文部分：min-width:0 是必须的 —— flex 子项默认 min-width:auto，
@@ -1124,18 +1047,12 @@ html:has(.home-pager) .site-footer {
   object-fit: cover;
   transition: transform 0.5s var(--ease-silk);
 }
-.post-card:hover .post-card-thumb img { transform: scale(1.06); }
+.post-card:hover .post-card-thumb img { transform: translateX(2px); }
 
 /* 没有缩略图的卡片回到原来的纵向排版 */
 .post-card:not(.has-thumb) { display: block; }
 
-.post-card:hover { will-change: transform; }
-
-/* 卡片的亚克力层：半透底 + 毛玻璃 + 内高光 + 顶部光泽。
-   用伪元素而非直接加在 .post-card 上：卡片带有 JS 驱动的行内 transform（鼠标跟随时 3D 倾斜）
-   与 transform-style: preserve-3d，而 backdrop-filter 属于分组属性，
-   与变换同元素会让它扁平化，子元素的 translateZ(10px) 深度会失效；
-   放进伪元素则两者共存。 */
+/* 卡片的材质层：保留轻微透明感，但去掉 3D 倾斜与玻璃高光。 */
 .post-card::after {
   content: "";
   position: absolute;
@@ -1149,7 +1066,7 @@ html:has(.home-pager) .site-footer {
   pointer-events: none;
 }
 
-/* 日间模式 hover：阴影加深 + 微浮起 + 边框高亮 */
+/* 日间模式 hover：短距离位移 + 边框高亮 */
 .post-card:hover {
   box-shadow: var(--card-shadow-hover-1), var(--card-shadow-hover-2), var(--card-shadow-hover-3);
   border-color: color-mix(in srgb, var(--accent) 30%, var(--border));
@@ -1187,9 +1104,8 @@ html.dark .post-card:hover {
 .post-card .meta > span { flex-shrink: 0; }
 .post-card .summary { color: var(--muted); margin: 8px 0 0; font-size: 0.92rem; position: relative; z-index: 1; }
 
-/* 卡片内容压在亚克力层之上：平铺（非 preserve-3d）时靠 z-index 决定，
-   preserve-3d 生效时由 translateZ 的深度排序接管，两种情况下都不会被遮住 */
-.post-card > * { position: relative; z-index: 1; transform: translateZ(10px); }
+/* 内容压在亚克力层之上。 */
+.post-card > * { position: relative; z-index: 1; }
 .pinned-badge {
   display: inline-block; background: #fef3c7; color: #92400e;
   font-size: 0.7rem; padding: 2px 8px; border-radius: 0; margin-left: 8px;
@@ -1200,24 +1116,22 @@ html.dark .pinned-badge { background: #78350f; color: #fde68a; }
 .collection-card {
   position: relative;
   margin: 20px 0;
-  /* 光圈与堆叠层都可能超出卡片，但不能裁掉堆叠层，所以不设 overflow: hidden；
-     封面自己用 border-radius: 0 且贴齐边框，靠 .collection-cover 单独裁切 */
+  /* 背后的双线框超出卡片，不裁切；封面单独裁切。 */
   isolation: isolate;
 }
 
-/* 背后两层层叠：默认各上移 6/12px、缩 0.98/0.96，
-   鼠标移入后按指针位置往反方向摊开（--fan-x / --fan-y 由组件写入） */
+/* 背后两层静态线框：不缩放、不跟随指针。 */
 .collection-stack { position: absolute; inset: 0; pointer-events: none; z-index: -1; }
 .collection-card .stack {
   position: absolute;
   inset: 0;
   border: 1px solid var(--border);
   background: var(--card);
-  transform: translate(var(--fan-x, 0px), calc(-6px + var(--fan-y, 0px))) scale(0.98);
-  transition: transform 0.45s var(--ease-silk), border-color 0.45s var(--ease-silk);
+  transform: translate(6px, -6px);
+  transition: border-color 0.3s var(--ease-silk);
 }
 .collection-card .stack-2 {
-  transform: translate(calc(var(--fan-x, 0px) * 1.8), calc(-12px + var(--fan-y, 0px) * 1.8)) scale(0.96);
+  transform: translate(12px, -12px);
   opacity: 0.85;
 }
 .collection-card:hover .stack { border-color: color-mix(in srgb, var(--accent) 30%, var(--border)); }
@@ -1239,18 +1153,14 @@ html.dark .pinned-badge { background: #78350f; color: #fde68a; }
 .collection-link:hover { text-decoration: none; border-color: color-mix(in srgb, var(--accent) 35%, var(--border)); }
 .collection-card:hover .collection-link { box-shadow: var(--card-shadow-hover-1), var(--card-shadow-hover-2); }
 
-/* 跟随指针的光斑：区别于 PostCard 的 3D 倾斜 */
+/* 合集卡片使用低对比度的平面 hover，不再跟随指针制造光斑。 */
 .collection-link::after {
   content: "";
   position: absolute;
   inset: 0;
   pointer-events: none;
   opacity: 0;
-  background: radial-gradient(
-    260px circle at var(--mx, 50%) var(--my, 50%),
-    color-mix(in srgb, var(--accent) 18%, transparent),
-    transparent 65%
-  );
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 10%, transparent), transparent 45%);
   transition: opacity 0.35s var(--ease-silk);
 }
 .collection-card:hover .collection-link::after { opacity: 1; }
@@ -1272,7 +1182,8 @@ html.dark .pinned-badge { background: #78350f; color: #fde68a; }
   display: block;
   transition: transform 0.6s var(--ease-silk);
 }
-.collection-card:hover .collection-cover img { transform: scale(1.04); }
+.collection-card:hover .collection-cover img { transform: translateX(2px); }
+.collection-link:hover { transform: translateY(-2px); }
 
 .collection-body { display: block; padding: 18px 22px; }
 
@@ -1694,24 +1605,17 @@ html.dark .post-content::before { display: none; }
   animation: title-settle 0.36s var(--ease-silk) both;
 }
 @keyframes title-settle {
-  from { opacity: 0; transform: translateY(8px) scale(0.985); }
+  from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: none; }
 }
 
-/* 正文整体展开：以顶边为原点纵向压缩 → 回弹，视觉上从标题向下延伸。
-   只用 transform/opacity（合成层属性），不用 clip-path：后者需要逐帧
-   重绘本元素，长文正文面积极大会明显掉帧。
-   终点用 transform: none 而非 scale(1)，避免动画结束后留下持续变换
-   （持续变换会保留合成层，文字渲染会偏软）。 */
+/* 正文仅淡入并平移数像素，不缩放长文，避免文字合成时发虚。 */
 .post-content .article {
-  transform-origin: top center;
   animation: unfold-from-title 0.6s var(--ease-silk) 0.12s both;
 }
 @keyframes unfold-from-title {
-  0%   { opacity: 0;   transform: translateY(-8px) scaleY(0.9); }
-  55%  { opacity: 1;   transform: translateY(0)    scaleY(1.006); }
-  78%  { opacity: 1;   transform: translateY(0)    scaleY(0.998); }
-  100% { opacity: 1;   transform: none; }
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
 }
 
 /* 正文内不再逐元素滑入：整体伸展才是主视觉，
@@ -1970,7 +1874,7 @@ html.dark .author-badge.ai { background: #450a0a; color: #fca5a5; }
 .search-fab:hover,
 .tags-fab:hover,
 .font-fab:hover {
-  transform: scale(1.06);
+  transform: translateY(-1px);
   border-color: var(--accent);
   background: color-mix(in srgb, var(--bg) 50%, transparent);
   box-shadow: 0 4px 16px rgba(0,0,0,0.15);
@@ -1981,7 +1885,7 @@ html.dark .author-badge.ai { background: #450a0a; color: #fca5a5; }
 .toc-fab:active,
 .search-fab:active,
 .tags-fab:active,
-.font-fab:active { transform: scale(0.94); }
+.font-fab:active { transform: translateY(1px); }
 
 /* 纯 CSS hamburger 三条杠图标 */
 .hb-icon {
@@ -2024,7 +1928,7 @@ html.dark .author-badge.ai { background: #450a0a; color: #fca5a5; }
   box-shadow: 0 8px 32px rgba(0,0,0,0.15);
   overflow: hidden;
   opacity: 0; pointer-events: none;
-  transform: translateY(-8px) scale(0.96);
+  transform: translateY(-8px);
   transform-origin: top left;
   transition: opacity 0.25s var(--ease-silk),
               transform 0.3s var(--ease-elastic);
@@ -2032,7 +1936,7 @@ html.dark .author-badge.ai { background: #450a0a; color: #fca5a5; }
 }
 .toc-panel.open {
   opacity: 1; pointer-events: auto;
-  transform: translateY(0) scale(1);
+  transform: translateY(0);
 }
 .toc-panel-head {
   display: flex; align-items: center; gap: 6px;
@@ -2068,8 +1972,8 @@ html.dark .author-badge.ai { background: #450a0a; color: #fca5a5; }
   background: var(--border); flex-shrink: 0;
   transition: background 0.2s, transform 0.2s;
 }
-.toc-panel-list a:hover .toc-bullet { background: var(--accent); transform: scale(1.4); }
-.toc-panel-list a.active .toc-bullet { background: var(--accent); transform: scale(1.6); }
+.toc-panel-list a:hover .toc-bullet { background: var(--accent); }
+.toc-panel-list a.active .toc-bullet { background: var(--accent); }
 
 /* ===== 格位 =====
    每个按钮/面板声明自己在这列里排第几（--fab-slot，从 0 起）；
@@ -2107,7 +2011,7 @@ html.dark .author-badge.ai { background: #450a0a; color: #fca5a5; }
   border-radius: 0;
   box-shadow: 0 8px 32px rgba(0,0,0,0.15);
   opacity: 0; pointer-events: none;
-  transform: translateY(-8px) scale(0.96);
+  transform: translateY(-8px);
   transform-origin: top left;
   transition: opacity 0.25s var(--ease-silk),
               transform 0.3s var(--ease-elastic);
@@ -2115,7 +2019,7 @@ html.dark .author-badge.ai { background: #450a0a; color: #fca5a5; }
 }
 .font-panel.open {
   opacity: 1; pointer-events: auto;
-  transform: translateY(0) scale(1);
+  transform: translateY(0);
 }
 
 .font-panel-head {
@@ -2334,11 +2238,11 @@ html.dark .author-badge.ai { background: #450a0a; color: #fca5a5; }
   margin-right: 8px;
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
-  animation: near-label-pop 0.2s var(--ease-elastic) both;
+  animation: near-label-pop 0.2s var(--ease-silk) both;
 }
 @keyframes near-label-pop {
-  from { opacity: 0; transform: translateY(-50%) translateX(8px) scale(0.85); }
-  to   { opacity: 1; transform: translateY(-50%) translateX(0) scale(1); }
+  from { opacity: 0; transform: translateY(-50%) translateX(8px); }
+  to   { opacity: 1; transform: translateY(-50%) translateX(0); }
 }
 .scroll-rail-pct {
   position: absolute;
@@ -2364,7 +2268,7 @@ html.dark .author-badge.ai { background: #450a0a; color: #fca5a5; }
   padding: 0; z-index: 41;
   box-shadow: 0 4px 16px rgba(0,0,0,0.12);
   opacity: 0; pointer-events: none;
-  transform: translateY(20px) scale(0.7);
+  transform: translateY(12px);
   transition: opacity 0.35s var(--ease-silk),
               transform 0.35s var(--ease-elastic),
               box-shadow 0.35s var(--ease-silk),
@@ -2372,15 +2276,15 @@ html.dark .author-badge.ai { background: #450a0a; color: #fca5a5; }
 }
 .back-to-top.show {
   opacity: 1; pointer-events: auto;
-  transform: translateY(0) scale(1);
+  transform: translateY(0);
 }
 .back-to-top:hover {
-  transform: translateY(-3px) scale(1.08);
+  transform: translateY(-2px);
   box-shadow: 0 8px 24px rgba(0,0,0,0.18);
   border-color: var(--accent);
 }
 .back-to-top:hover .back-top-icon { transform: translateY(-2px); color: var(--accent); }
-.back-to-top:active { transform: translateY(0) scale(0.95); }
+.back-to-top:active { transform: translateY(1px); }
 .back-top-icon {
   display: block;
   transition: transform 0.35s var(--ease-elastic), color 0.3s;
@@ -2391,13 +2295,7 @@ html.dark .author-badge.ai { background: #450a0a; color: #fca5a5; }
   border: 2px solid var(--accent);
   opacity: 0; pointer-events: none;
 }
-.back-to-top:hover .back-top-ring {
-  animation: ring-ripple 1s ease-out infinite;
-}
-@keyframes ring-ripple {
-  0%   { transform: scale(1); opacity: 0.6; }
-  100% { transform: scale(1.8); opacity: 0; }
-}
+.back-to-top:hover .back-top-ring { opacity: 0.55; }
 
 /* ===== 浮动导航响应式 =====
    注意：这里的 top 一律挂在 --header-h 上，改顶栏高度时不需要动本段。 */
@@ -2538,6 +2436,7 @@ mark.search-highlight { background: var(--mark-bg); padding: 0 2px; border-radiu
 .footer-link-static:hover {
   border-color: var(--border);
   transform: none;
+  box-shadow: var(--card-acrylic-glow);
 }
 .footer-link-label {
   /* 中文环境下的标签长，给一个可延展的基线对齐行 */
@@ -2549,10 +2448,7 @@ mark.search-highlight { background: var(--mark-bg); padding: 0 2px; border-radiu
   letter-spacing: 0.06em;
   color: var(--muted);
 }
-/* 图标默认静止，鼠标悬停到卡片时做一段小幅动作。
-   用 transform/opacity 这类合成层属性，不触发重排。
-   动作统一为「轻微上浮 + 小幅度摆」，不加无限循环：
-   页脚一排 7 张卡片全在循环动画会很吵，也会在白底标签页里持续耗电。 */
+/* 页脚图标沿竖轴短距离移动；不旋转或弹跳。 */
 .footer-link-icon {
   display: inline-block;
   flex-shrink: 0;
@@ -2560,26 +2456,20 @@ mark.search-highlight { background: var(--mark-bg); padding: 0 2px; border-radiu
 }
 .footer-link:hover .footer-link-icon {
   color: var(--accent);
-  animation: footer-icon-pop 0.5s var(--ease-elastic);
-}
-@keyframes footer-icon-pop {
-  0%   { transform: translateY(0) rotate(0deg) scale(1); }
-  35%  { transform: translateY(-4px) rotate(-8deg) scale(1.15); }
-  70%  { transform: translateY(0) rotate(4deg) scale(1.05); }
-  100% { transform: translateY(0) rotate(0deg) scale(1); }
+  transform: translateY(-2px);
 }
 /* 静态卡片（微信 / Discord）不可点，不给 hover 动作，避免误认为可点 */
 .footer-link-static:hover .footer-link-icon {
   color: inherit;
-  animation: none;
+  transform: none;
 }
-/* 动画减弱 / 关闭时不跑：与站内其它 hover 动画保持一致的处理 */
+/* 动画减弱 / 关闭时不移动。 */
 @media (prefers-reduced-motion: reduce) {
-  .footer-link:hover .footer-link-icon { animation: none; }
+  .footer-link:hover .footer-link-icon { transform: none; }
 }
 html[data-motion="lite"] .footer-link:hover .footer-link-icon,
 html[data-motion="off"] .footer-link:hover .footer-link-icon {
-  animation: none;
+  transform: none;
 }
 .footer-link-value {
   font-size: 0.85rem;
@@ -2832,9 +2722,8 @@ html.dark .katex-error { color: #fca5a5; }
   .not-found h1 { font-size: 2.5rem; }
 }
 
-/* ===== Claude-inspired visual refinement =====
-   视觉方向：温暖纸张底色、低对比度边界、赭石色强调、克制的圆角与阴影。
-   保留现有交互与布局，仅统一视觉语汇，避免页面变成“效果集合”。 */
+/* ===== 暖纸色基础上的几何极简视觉 =====
+   保留暖纸底色与赭石强调；卡片恢复直角，线框成为主视觉，动效不做缩放弹跳。 */
 :root {
   --bg: #f7f5f2;
   --fg: #252422;
@@ -2912,21 +2801,93 @@ body {
 }
 .hero-title em { color: var(--accent); }
 
-/* 统一组件的圆角与克制动效 */
+/* 统一组件的几何边界：所有面板与卡片恢复直角。 */
 .post-card, .home-card, .update-item, .footer-link, .search-box,
 .term-item, .pagination a, .pagination span, .post-nav a, .toc,
 .collection-link, .friends-link, .icon-btn, .pinned-badge, .author-badge,
 .settings-panel, .settings-opt, .friend-card, .toc-panel, .font-panel {
-  border-radius: 12px;
+  border-radius: 0;
 }
 .post-card, .home-card, .update-item, .footer-link {
   border-color: color-mix(in srgb, var(--border) 88%, transparent);
 }
-.home-card:hover {
-  transform: translateY(-3px);
-  border-color: color-mix(in srgb, var(--accent) 30%, var(--border));
-}
+.home-card:hover { border-color: color-mix(in srgb, var(--accent) 30%, var(--border)); }
 .post-card:hover { border-color: color-mix(in srgb, var(--accent) 30%, var(--border)); }
+.post-card:hover, .home-card:hover, .update-item:hover, .friend-card:hover,
+.footer-link:not(.footer-link-static):hover {
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+.post-card:focus-within, .home-card:focus-visible, .update-item:focus-visible,
+.friend-card:focus-visible, .collection-link:focus-visible,
+.footer-link:not(.footer-link-static):focus-visible {
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+/* 原有伪元素用于角标，不占用它画线；内阴影不会吞掉键盘焦点外轮廓。 */
+.post-card, .home-card, .update-item, .friend-card, .collection-link, .footer-link {
+  transition: transform 0.3s var(--ease-silk), border-color 0.3s var(--ease-silk),
+              box-shadow 0.3s var(--ease-silk), background-color 0.3s var(--ease-silk);
+}
+.post-card:hover, .home-card:hover, .friend-card:hover { transform: translateY(-2px); }
+.update-item:hover { transform: translateX(3px); }
+.footer-link:not(.footer-link-static):hover { transform: translateY(-2px); }
+.footer-link-static:hover { transform: none; box-shadow: var(--card-acrylic-glow); }
+/* 轻量网格：纯 CSS 线条，不新增 DOM、不拦截交互。 */
+.home-page {
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, var(--border) 45%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--border) 45%, transparent) 1px, transparent 1px);
+  background-size: 72px 72px;
+  background-position: center;
+}
+.home-page::before, .home-page::after {
+  content: "";
+  position: absolute;
+  left: max(24px, calc((100% - 1120px) / 2));
+  right: max(24px, calc((100% - 1120px) / 2));
+  height: 1px;
+  background: color-mix(in srgb, var(--border) 80%, transparent);
+  pointer-events: none;
+}
+.home-page::before { top: 24px; }
+.home-page::after { bottom: 24px; }
+.home-page > :not(.hero-hint) { position: relative; z-index: 1; }
+.home-page .hero-hint { z-index: 1; }
+.home-page .section-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+.home-page .section-title::before,
+.home-page .section-title::after {
+  content: "";
+  width: clamp(24px, 7vw, 90px);
+  height: 1px;
+  background: var(--accent);
+  opacity: 0.55;
+}
+.home-page .section-title::before { transform-origin: right; }
+.home-page .section-title::after { transform-origin: left; }
+@keyframes draw-rule {
+  from { transform: scaleX(0); opacity: 0; }
+  to { transform: scaleX(1); opacity: 0.55; }
+}
+.home-page .section-title::before,
+.home-page .section-title::after {
+  animation: draw-rule 0.7s var(--ease-silk) backwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-page .section-title::before, .home-page .section-title::after { animation: none; }
+}
+html[data-motion="off"] .home-page .section-title::before,
+html[data-motion="off"] .home-page .section-title::after { animation: none; }
+.page-title { padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+.article h2 { border-bottom-color: var(--border); }
+.page-dot { border-radius: 0; width: 7px; height: 7px; }
+.page-dot.active { transform: none; }
+.hero-hint { animation: none; }
+.hero-hint svg { transition: transform 0.3s var(--ease-silk); }
+.hero-hint:hover svg { transform: translateY(3px); }
 .friends-link:hover, .icon-btn:hover, .tag:hover, .term-item:hover,
 .post-nav a:hover, .pagination a:hover, .copy-btn:hover, .toc a:hover,
 .breadcrumbs a:hover {
@@ -2938,17 +2899,17 @@ body {
   margin: 8px 10px 8px 0;
   height: calc(100% - 16px);
   border: 0;
-  border-radius: 10px;
+  border-radius: 0;
 }
-.brand-switch .icon-btn { border-radius: 50%; }
+.brand-switch .icon-btn { border-radius: 0; }
 
 .home-page { padding-left: 24px; padding-right: 24px; }
 .home-card { background: var(--card-acrylic-sheen), var(--card-acrylic-bg); }
 .home-card-title { font-family: Georgia, "Songti SC", "Noto Serif SC", serif; font-size: 1.18rem; }
 .update-item { background: var(--card-acrylic-sheen), var(--card-acrylic-bg); }
 .post-card { background: transparent; }
-.post-card::after { border-radius: inherit; }
-.post-card-thumb { border-radius: 9px; border-color: transparent; }
+.post-card::after { border-radius: 0; }
+.post-card-thumb { border-radius: 0; border-color: transparent; }
 .footer-link { background: var(--card-acrylic-sheen), var(--card-acrylic-bg); }
 .post-card h2 { font-weight: 600; line-height: 1.4; }
 .post-card .summary { line-height: 1.75; }
@@ -2959,7 +2920,7 @@ body {
 }
 .post-card:focus-within, .home-card:focus-visible, .update-item:focus-visible {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+  box-shadow: inset 2px 0 0 var(--accent), 0 0 0 2px color-mix(in srgb, var(--accent) 24%, transparent);
 }
 @media (prefers-reduced-motion: reduce) {
   .post-card:hover, .home-card:hover, .update-item:hover { transform: none; }
@@ -2967,9 +2928,19 @@ body {
 html[data-motion="off"] .post-card:hover,
 html[data-motion="off"] .home-card:hover,
 html[data-motion="off"] .update-item:hover { transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  .friend-card:hover, .footer-link:hover, .collection-cover img,
+  .post-card-thumb img, .hero-hint:hover svg { transform: none; }
+}
+html[data-motion="off"] .friend-card:hover,
+html[data-motion="off"] .footer-link:hover,
+html[data-motion="off"] .collection-cover img,
+html[data-motion="off"] .post-card-thumb img,
+html[data-motion="off"] .hero-hint:hover svg { transform: none; }
 
 @media (max-width: 480px) {
   .home-page { padding-left: 16px; padding-right: 16px; }
+  .home-page { background-size: 48px 48px; }
   .image-placeholder { margin: 6px 6px 6px 0; height: calc(100% - 12px); }
   .hero-title { font-size: clamp(2.2rem, 10vw, 3.25rem); }
   .hero-sub { font-size: 0.96rem; }
@@ -3062,6 +3033,8 @@ html[data-motion="off"] .update-item:hover { transform: none; }
 }
 
 @media print {
+  .home-page { background-image: none !important; }
+  .home-page::before, .home-page::after { display: none !important; }
   /* 隐藏不需要打印的元素 */
   .site-header, .site-footer, .post-nav, .comments-section, .breadcrumbs,
   .toc-fab-wrap, .scroll-rail, .back-to-top,
