@@ -2832,6 +2832,149 @@ html.dark .katex-error { color: #fca5a5; }
   .not-found h1 { font-size: 2.5rem; }
 }
 
+/* ===== Claude-inspired visual refinement =====
+   视觉方向：温暖纸张底色、低对比度边界、赭石色强调、克制的圆角与阴影。
+   保留现有交互与布局，仅统一视觉语汇，避免页面变成“效果集合”。 */
+:root {
+  --bg: #f7f5f2;
+  --fg: #252422;
+  --primary: #252422;
+  --border: #e4dfd8;
+  --muted: #746f68;
+  --accent: #c15f3c;
+  --ai-color: #9a5b46;
+  --card: #fcfbf9;
+  --reading-bg: rgba(252, 251, 249, 0.94);
+  --reading-border: rgba(57, 45, 35, 0.09);
+  --card-acrylic-bg: rgba(252, 251, 249, 0.88);
+  --card-acrylic-blur: 14px;
+  --reading-blur: 18px;
+  --card-shadow-1: 0 1px 2px rgba(58, 46, 35, 0.03);
+  --card-shadow-2: 0 8px 24px rgba(58, 46, 35, 0.055);
+  --card-shadow-hover-1: 0 2px 5px rgba(58, 46, 35, 0.06);
+  --card-shadow-hover-2: 0 14px 34px rgba(58, 46, 35, 0.11);
+  --card-shadow-hover-3: 0 24px 52px rgba(58, 46, 35, 0.07);
+  --cn-end: var(--bg);
+  --reading-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.28), transparent 28%);
+  --reading-shadow: 0 1px 2px rgba(58, 46, 35, 0.025), 0 14px 40px rgba(58, 46, 35, 0.065);
+}
+
+html.dark {
+  --bg: #181715;
+  --fg: #f1eee9;
+  --primary: #f1eee9;
+  --border: #38332e;
+  --muted: #aaa39a;
+  --accent: #e78968;
+  --ai-color: #e0a087;
+  --card: #211f1c;
+  --reading-bg: rgba(35, 32, 29, 0.92);
+  --reading-border: rgba(255, 239, 224, 0.12);
+  --card-acrylic-bg: rgba(37, 34, 31, 0.88);
+  --card-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.25);
+  --card-shadow-2: 0 10px 28px rgba(0, 0, 0, 0.24);
+  --card-shadow-hover-1: 0 2px 5px rgba(0, 0, 0, 0.32);
+  --card-shadow-hover-2: 0 16px 38px rgba(0, 0, 0, 0.38);
+  --card-shadow-hover-3: 0 28px 56px rgba(0, 0, 0, 0.22);
+  --reading-sheen: linear-gradient(180deg, transparent, transparent);
+  --reading-shadow: 0 12px 36px rgba(0, 0, 0, 0.27);
+}
+
+/* 默认 blue 同步为暖赭石；其他预设及自定义色沿用原选择器。 */
+html:not([data-palette]), html[data-palette="blue"] { --accent: #a94e30; }
+html.dark:not([data-palette]), html.dark[data-palette="blue"] { --accent: #ee9b78; }
+
+body {
+  font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  letter-spacing: -0.008em;
+}
+
+.site-header {
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  border-bottom-color: color-mix(in srgb, var(--border) 78%, transparent);
+  box-shadow: 0 1px 0 rgba(80, 55, 35, 0.02);
+}
+.logo, .hero-title, .section-title, .post-header h1, .page-title, .group-header .page-title,
+.post-card h2, .article h1, .article h2 {
+  font-family: Georgia, "Songti SC", "Noto Serif SC", serif;
+  letter-spacing: -0.025em;
+}
+.logo { font-weight: 700; }
+.hero-title { max-width: 14em; font-weight: 600; font-size: clamp(2.5rem, 7vw, 5.25rem); line-height: 1.16; }
+.hero-title em { color: var(--accent); }
+.hero-sub { max-width: 38em; font-size: 1.06rem; line-height: 1.9; }
+.section-title { font-size: clamp(1.75rem, 3vw, 2.35rem); font-weight: 600; }
+.section-sub { font-size: 0.92rem; line-height: 1.7; }
+/* difference 会让暖色背景上的标题变灰，并吞掉人名的强调色。 */
+.hero-title, .page-title, .archive-year, .not-found h1 {
+  mix-blend-mode: normal;
+  color: var(--fg);
+}
+.hero-title em { color: var(--accent); }
+
+/* 统一组件的圆角与克制动效 */
+.post-card, .home-card, .update-item, .footer-link, .search-box,
+.term-item, .pagination a, .pagination span, .post-nav a, .toc,
+.collection-link, .friends-link, .icon-btn, .pinned-badge, .author-badge,
+.settings-panel, .settings-opt, .friend-card, .toc-panel, .font-panel {
+  border-radius: 12px;
+}
+.post-card, .home-card, .update-item, .footer-link {
+  border-color: color-mix(in srgb, var(--border) 88%, transparent);
+}
+.home-card:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--accent) 30%, var(--border));
+}
+.post-card:hover { border-color: color-mix(in srgb, var(--accent) 30%, var(--border)); }
+.friends-link:hover, .icon-btn:hover, .tag:hover, .term-item:hover,
+.post-nav a:hover, .pagination a:hover, .copy-btn:hover, .toc a:hover,
+.breadcrumbs a:hover {
+  filter: none;
+  transform: translateY(-1px);
+}
+
+.image-placeholder {
+  margin: 8px 10px 8px 0;
+  height: calc(100% - 16px);
+  border: 0;
+  border-radius: 10px;
+}
+.brand-switch .icon-btn { border-radius: 50%; }
+
+.home-page { padding-left: 24px; padding-right: 24px; }
+.home-card { background: var(--card-acrylic-sheen), var(--card-acrylic-bg); }
+.home-card-title { font-family: Georgia, "Songti SC", "Noto Serif SC", serif; font-size: 1.18rem; }
+.update-item { background: var(--card-acrylic-sheen), var(--card-acrylic-bg); }
+.post-card { background: transparent; }
+.post-card::after { border-radius: inherit; }
+.post-card-thumb { border-radius: 9px; border-color: transparent; }
+.footer-link { background: var(--card-acrylic-sheen), var(--card-acrylic-bg); }
+.post-card h2 { font-weight: 600; line-height: 1.4; }
+.post-card .summary { line-height: 1.75; }
+.article { line-height: 1.85; }
+:where(a, button, input, select, textarea):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+.post-card:focus-within, .home-card:focus-visible, .update-item:focus-visible {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+@media (prefers-reduced-motion: reduce) {
+  .post-card:hover, .home-card:hover, .update-item:hover { transform: none; }
+}
+html[data-motion="off"] .post-card:hover,
+html[data-motion="off"] .home-card:hover,
+html[data-motion="off"] .update-item:hover { transform: none; }
+
+@media (max-width: 480px) {
+  .home-page { padding-left: 16px; padding-right: 16px; }
+  .image-placeholder { margin: 6px 6px 6px 0; height: calc(100% - 12px); }
+  .hero-title { font-size: clamp(2.2rem, 10vw, 3.25rem); }
+  .hero-sub { font-size: 0.96rem; }
+}
+
 /* ===== 打印 ===== */
 /* 屏幕下隐藏打印按钮 */
 .print-controls { display: none; }

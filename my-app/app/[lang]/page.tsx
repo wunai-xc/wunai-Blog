@@ -134,9 +134,6 @@ export default async function HomePage({ params }: { params: Promise<{ lang: str
 
       {/* 吸附加力：三屏都放得下就升到 mandatory，否则做向前辅助吸附 */}
       <HomeSnap />
-
-      {/* 吸附加力：三屏都放得下就升到 mandatory，否则做向前辅助吸附 */}
-      <HomeSnap />
     </div>
   );
 }

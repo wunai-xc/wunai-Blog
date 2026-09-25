@@ -133,6 +133,10 @@ export default function PostBody({ html, slug }: { html: string; slug: string })
     const el = ref.current;
     if (!el) return;
 
+    // 收集副作用清理函数，避免路由切换后监听器、定时器和图表观察器继续占用资源。
+    const cleanups: (() => void)[] = [];
+    const addCleanup = (cleanup: () => void) => cleanups.push(cleanup);
+
     /* 正文图片加载失败时换成明确的占位块。
        默认的裂图图标既难看也说不清原因（404？防盗链？路径写错？），
        换成带 alt 文字的占位块后，读者与作者都能一眼看出是「图没加载出来」。
@@ -154,6 +158,7 @@ export default function PostBody({ html, slug }: { html: string; slug: string })
         return;
       }
       img.addEventListener("error", markMissing, { once: true });
+      addCleanup(() => img.removeEventListener("error", markMissing));
     });
 
     // 代码复制按钮
@@ -162,14 +167,20 @@ export default function PostBody({ html, slug }: { html: string; slug: string })
       const btn = document.createElement("button");
       btn.className = "copy-btn";
       btn.textContent = "Copy";
+      let resetTimer: ReturnType<typeof setTimeout> | undefined;
       btn.onclick = () => {
         const code = pre.querySelector("code");
         navigator.clipboard.writeText(code?.textContent || "").then(() => {
           btn.textContent = "Copied!";
-          setTimeout(() => (btn.textContent = "Copy"), 1500);
+          resetTimer = setTimeout(() => (btn.textContent = "Copy"), 1500);
         });
       };
       pre.appendChild(btn);
+      addCleanup(() => {
+        if (resetTimer) clearTimeout(resetTimer);
+        btn.onclick = null;
+        btn.remove();
+      });
     });
 
     // Mermaid
@@ -202,6 +213,10 @@ export default function PostBody({ html, slug }: { html: string; slug: string })
               // 响应式
               const ro = new ResizeObserver(() => chart.resize());
               ro.observe(c);
+              addCleanup(() => {
+                ro.disconnect();
+                chart.dispose();
+              });
             } catch (e) {
               c.textContent = "ECharts 数据解析失败";
             }
@@ -303,6 +318,8 @@ export default function PostBody({ html, slug }: { html: string; slug: string })
         () => abcs.forEach((c: any) => { c.textContent = "abc.js 加载失败"; })
       );
     }
+
+    return () => cleanups.forEach((cleanup) => cleanup());
   }, [html]);
 
   return <div className="article" ref={ref} dangerouslySetInnerHTML={{ __html: html }} />;

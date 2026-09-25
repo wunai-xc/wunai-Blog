@@ -1,0 +1,131 @@
+diff --git a/my-app/app/[lang]/page.tsx b/my-app/app/[lang]/page.tsx
+--- a/my-app/app/[lang]/page.tsx
++++ b/my-app/app/[lang]/page.tsx
+@@ -132,11 +132,8 @@
+       {/* 三屏都在时给出三个点；没有更新数据就只有两屏 */}
+       <PageIndicator count={updates.length > 0 ? 3 : 2} label={t.pageNav} />
+ 
+       {/* 吸附加力：三屏都放得下就升到 mandatory，否则做向前辅助吸附 */}
+       <HomeSnap />
+-
+-      {/* 吸附加力：三屏都放得下就升到 mandatory，否则做向前辅助吸附 */}
+-      <HomeSnap />
+     </div>
+   );
+ }
+diff --git a/my-app/app/globals.css b/my-app/app/globals.css
+--- a/my-app/app/globals.css
++++ b/my-app/app/globals.css
+@@ -2832,7 +2832,111 @@
+   .not-found h1 { font-size: 2.5rem; }
+ }
+ 
+-/* ===== 打印 ===== */
++/* ===== Claude-inspired visual refinement =====
++   视觉方向：温暖纸张底色、低对比度边界、赭石色强调、克制的圆角与阴影。
++   保留现有交互与布局，仅统一视觉语汇，避免页面变成“效果集合”。 */
++:root {
++  --bg: #f7f5f2;
++  --fg: #252422;
++  --primary: #252422;
++  --border: #e4dfd8;
++  --muted: #746f68;
++  --accent: #c15f3c;
++  --ai-color: #9a5b46;
++  --card: #fcfbf9;
++  --reading-bg: rgba(252, 251, 249, 0.94);
++  --reading-border: rgba(57, 45, 35, 0.09);
++  --card-acrylic-bg: rgba(252, 251, 249, 0.88);
++  --card-acrylic-blur: 14px;
++  --reading-blur: 18px;
++  --card-shadow-1: 0 1px 2px rgba(58, 46, 35, 0.03);
++  --card-shadow-2: 0 8px 24px rgba(58, 46, 35, 0.055);
++  --card-shadow-hover-1: 0 2px 5px rgba(58, 46, 35, 0.06);
++  --card-shadow-hover-2: 0 14px 34px rgba(58, 46, 35, 0.11);
++  --card-shadow-hover-3: 0 24px 52px rgba(58, 46, 35, 0.07);
++}
++
++html.dark {
++  --bg: #181715;
++  --fg: #f1eee9;
++  --primary: #f1eee9;
++  --border: #38332e;
++  --muted: #aaa39a;
++  --accent: #e78968;
++  --ai-color: #e0a087;
++  --card: #211f1c;
++  --reading-bg: rgba(35, 32, 29, 0.92);
++  --reading-border: rgba(255, 239, 224, 0.12);
++  --card-acrylic-bg: rgba(37, 34, 31, 0.88);
++  --card-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.25);
++  --card-shadow-2: 0 10px 28px rgba(0, 0, 0, 0.24);
++  --card-shadow-hover-1: 0 2px 5px rgba(0, 0, 0, 0.32);
++  --card-shadow-hover-2: 0 16px 38px rgba(0, 0, 0, 0.38);
++  --card-shadow-hover-3: 0 28px 56px rgba(0, 0, 0, 0.22);
++}
++
++body {
++  font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
++  letter-spacing: -0.008em;
++}
++
++.site-header {
++  background: color-mix(in srgb, var(--bg) 92%, transparent);
++  border-bottom-color: color-mix(in srgb, var(--border) 78%, transparent);
++  box-shadow: 0 1px 0 rgba(80, 55, 35, 0.02);
++}
++.logo, .hero-title, .section-title, .post-header h1, .page-title, .group-header .page-title {
++  font-family: Georgia, "Songti SC", "Noto Serif SC", serif;
++  letter-spacing: -0.035em;
++}
++.logo { font-weight: 700; }
++.hero-title { max-width: 14em; font-weight: 600; }
++.hero-title em { color: var(--accent); }
++
++/* 统一组件的圆角与克制动效 */
++.post-card, .home-card, .update-item, .footer-link, .search-box,
++.term-item, .pagination a, .pagination span, .post-nav a, .toc,
++.collection-link, .friends-link, .icon-btn, .pinned-badge, .author-badge {
++  border-radius: 12px;
++}
++.post-card, .home-card, .update-item, .footer-link {
++  border-color: color-mix(in srgb, var(--border) 88%, transparent);
++}
++.post-card:hover, .home-card:hover {
++  transform: translateY(-3px);
++  border-color: color-mix(in srgb, var(--accent) 30%, var(--border));
++}
++.friends-link:hover, .icon-btn:hover, .tag:hover, .term-item:hover,
++.post-nav a:hover, .pagination a:hover, .copy-btn:hover, .toc a:hover,
++.breadcrumbs a:hover {
++  filter: none;
++  transform: translateY(-1px);
++}
++
++.image-placeholder {
++  margin: 8px 10px 8px 0;
++  height: calc(100% - 16px);
++  border: 0;
++  border-radius: 10px;
++}
++.brand-switch .icon-btn { border-radius: 50%; }
++
++.home-page { padding-left: 24px; padding-right: 24px; }
++.home-card { background: var(--card-acrylic-sheen), var(--card-acrylic-bg); }
++.home-card-title { font-family: Georgia, "Songti SC", "Noto Serif SC", serif; font-size: 1.18rem; }
++.update-item { background: var(--card-acrylic-sheen), var(--card-acrylic-bg); }
++.post-card { background: transparent; }
++.post-card::after { border-radius: inherit; }
++.post-card-thumb { border-radius: 9px; border-color: transparent; }
++.footer-link { background: var(--card-acrylic-sheen), var(--card-acrylic-bg); }
++
++@media (max-width: 480px) {
++  .home-page { padding-left: 16px; padding-right: 16px; }
++  .image-placeholder { margin: 6px 6px 6px 0; height: calc(100% - 12px); }
++  .hero-title { font-size: clamp(2rem, 10vw, 3rem); }
++}
++
++/* ===== 打印 ===== */
+ /* 屏幕下隐藏打印按钮 */
+ .print-controls { display: none; }
+ 
