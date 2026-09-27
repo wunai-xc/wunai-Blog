@@ -1,0 +1,371 @@
+/* ==========================================================================
+   aesthetics.css — 液态玻璃主题（第二套视觉，第一期）
+   --------------------------------------------------------------------------
+   作用域：html[data-theme="aesthetics"]。
+   纸质（PaperMod）主题是默认值，一个选择器都不受影响；两套主题靠 <html> 上的
+   data-theme / data-skin-palette 切换，属性由下列两处写入：
+     · 首屏前：app/layout.tsx 的内联引导脚本（避免先闪一下纸质主题）
+     · 设置页：components/SiteSettings.tsx 的 applyToDom()
+   键名定义在 lib/settings.ts（skin / skinpalette）。
+
+   为什么不做成「重写 globals.css」：
+   · 现有视觉层几乎全走语义类（.post-card / .home-card / .update-item …）与
+     一组 CSS 变量（--bg / --card / --border / --muted / --accent …）。
+     所以第二主题＝「换变量 + 覆盖表面类」，126KB 的纸质规则一行都不用改，
+     想退回纸质主题只要把 data-theme 摘掉。
+   · 选择器统一用 html[data-theme="aesthetics"] 起头（特异度 0,2,1）：
+     压得住 globals.css 里的 .xxx 与 html.dark .xxx，又压不住 .xxx:hover，
+     所以纸质主题里那些 hover 交互默认得以保留；需要改观感的 hover
+     在本文里显式补一条（0,3,1）。
+
+   配色取自 aesthetics-blog 的八套体系（void / bloom / ember / abyss /
+   solar / riso / porcelain / mint），前四套是深色、后四套是浅色；
+   浅色配色自带 color-scheme: light，因此滚动条、表单控件、
+   以及「夜间模式」在玻璃主题下由配色本身决定，与 html.dark 无关。
+   ========================================================================== */
+
+/* ===== 一、与配色无关的玻璃参数 ===== */
+html[data-theme="aesthetics"] {
+  /* 圆角：纸质主题是直角约定，玻璃主题恢复圆角 */
+  --aes-r-s: 0.5rem;
+  --aes-r-m: 1rem;
+  --aes-r-l: 1.4rem;
+  --aes-r-pill: 999px;
+
+  /* 玻璃：底色半透明 + 背景虚化 + 顶边一道高光 */
+  --glass-blur: 16px;
+  --glass-filter: blur(var(--glass-blur)) saturate(1.6);
+  --glass-tint: color-mix(in srgb, var(--card) 62%, transparent);
+  --glass-tint-2: color-mix(in srgb, var(--card) 74%, transparent);
+  --glass-tint-strong: color-mix(in srgb, var(--card) 88%, transparent);
+  --glass-sheen: radial-gradient(135% 105% at 16% -18%, rgba(255, 255, 255, 0.18), transparent 62%);
+  --glass-sheen-2: radial-gradient(135% 105% at 16% -18%, rgba(255, 255, 255, 0.3), transparent 64%);
+  --glass-caustic: radial-gradient(80% 62% at 92% 112%, color-mix(in srgb, var(--aes-2) 18%, transparent), transparent 64%);
+  --glass-surface: var(--glass-sheen), var(--glass-caustic), var(--glass-tint);
+  --glass-surface-hover: var(--glass-sheen-2), var(--glass-caustic), var(--glass-tint-2);
+  --glass-surface-strong: var(--glass-sheen), var(--glass-caustic), var(--glass-tint-strong);
+  --glass-edge: color-mix(in srgb, var(--fg) 15%, transparent);
+  --glass-rim: color-mix(in srgb, var(--fg) 34%, transparent);
+  --glass-shadow: 0 18px 38px -28px rgba(0, 0, 0, 0.6), 0 2px 8px -5px rgba(0, 0, 0, 0.45);
+
+  /* 缓动：纸质主题用的是「刻式」阶梯（steps），玻璃主题全部换成连续曲线 */
+  --aes-ease-out: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --aes-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* 阅读面：深浅由配色自己算，不另写两套 */
+  --reading-bg: color-mix(in srgb, var(--bg) 93%, transparent);
+  --reading-border: color-mix(in srgb, var(--fg) 8%, transparent);
+  --reading-shadow: 0 1px 2px rgba(0, 0, 0, 0.05), 0 12px 32px rgba(0, 0, 0, 0.22);
+}
+
+/* ===== 二、八套配色 =====
+   只写基色；派生色（--glass-*、--accent-soft）由上面的变量算出来。
+   --aes-1/2/3 是主色 / 副色 / 刺激色；--accent 供全站既有规则使用（链接、hover）。 */
+html[data-theme="aesthetics"][data-skin-palette="void"] {
+  color-scheme: dark;
+  --bg: #07070a; --bg-2: #0c0c12; --card: #131319; --border: #26262f;
+  --fg: #f5f5f2; --muted: #9797a3; --primary: #c8ff2f;
+  --aes-1: #c8ff2f; --aes-2: #6b5cff; --aes-3: #ff4d6d;
+  --accent: #c8ff2f; --accent-soft: rgba(200, 255, 47, 0.16);
+  --ai-color: #6b5cff; --code-bg: #101018; --mark-bg: rgba(200, 255, 47, 0.24);
+  --aes-glow-1: rgba(200, 255, 47, 0.3); --aes-glow-2: rgba(107, 92, 255, 0.34); --aes-glow-3: rgba(255, 77, 109, 0.3);
+  --aes-on-1: #10140a; --aes-on-2: #f4f2ff;
+}
+html[data-theme="aesthetics"][data-skin-palette="bloom"] {
+  color-scheme: dark;
+  --bg: #0a0513; --bg-2: #140823; --card: #1d0e33; --border: #37205c;
+  --fg: #f8f2ff; --muted: #ac9ad0; --primary: #ff2fb9;
+  --aes-1: #ff2fb9; --aes-2: #00e5ff; --aes-3: #ffd166;
+  --accent: #ff2fb9; --accent-soft: rgba(255, 47, 185, 0.18);
+  --ai-color: #00e5ff; --code-bg: #18092c; --mark-bg: rgba(255, 209, 102, 0.24);
+  --aes-glow-1: rgba(255, 47, 185, 0.38); --aes-glow-2: rgba(0, 229, 255, 0.32); --aes-glow-3: rgba(255, 209, 102, 0.3);
+  --aes-on-1: #21001a; --aes-on-2: #00232a;
+}
+html[data-theme="aesthetics"][data-skin-palette="ember"] {
+  color-scheme: dark;
+  --bg: #0d0906; --bg-2: #170f09; --card: #20150d; --border: #3a2614;
+  --fg: #fff4e6; --muted: #b5967a; --primary: #ff6a13;
+  --aes-1: #ff6a13; --aes-2: #ffe14d; --aes-3: #ff2e63;
+  --accent: #ff6a13; --accent-soft: rgba(255, 106, 19, 0.18);
+  --ai-color: #ffe14d; --code-bg: #1a1109; --mark-bg: rgba(255, 225, 77, 0.22);
+  --aes-glow-1: rgba(255, 106, 19, 0.36); --aes-glow-2: rgba(255, 225, 77, 0.26); --aes-glow-3: rgba(255, 46, 99, 0.3);
+  --aes-on-1: #1c0800; --aes-on-2: #1e1800;
+}
+html[data-theme="aesthetics"][data-skin-palette="abyss"] {
+  color-scheme: dark;
+  --bg: #04121a; --bg-2: #071e2b; --card: #0b2a3a; --border: #17475f;
+  --fg: #eaf7ff; --muted: #83abbd; --primary: #14f1c8;
+  --aes-1: #14f1c8; --aes-2: #ffc857; --aes-3: #4f8cff;
+  --accent: #14f1c8; --accent-soft: rgba(20, 241, 200, 0.16);
+  --ai-color: #4f8cff; --code-bg: #08222f; --mark-bg: rgba(255, 200, 87, 0.22);
+  --aes-glow-1: rgba(20, 241, 200, 0.32); --aes-glow-2: rgba(255, 200, 87, 0.26); --aes-glow-3: rgba(79, 140, 255, 0.32);
+  --aes-on-1: #00241e; --aes-on-2: #231800;
+}
+html[data-theme="aesthetics"][data-skin-palette="solar"] {
+  color-scheme: light;
+  --bg: #f6efe3; --bg-2: #fff9ef; --card: #ffffff; --border: #e4d8c2;
+  --fg: #17140f; --muted: #6e6553; --primary: #ff4b1f;
+  --aes-1: #ff4b1f; --aes-2: #1b3bd8; --aes-3: #ffb703;
+  --accent: #ff4b1f; --accent-soft: rgba(255, 75, 31, 0.14);
+  --ai-color: #1b3bd8; --code-bg: #2b2620; --mark-bg: rgba(255, 183, 3, 0.3);
+  --aes-glow-1: rgba(255, 75, 31, 0.24); --aes-glow-2: rgba(27, 59, 216, 0.2); --aes-glow-3: rgba(255, 183, 3, 0.26);
+  --aes-on-1: #fff6f2; --aes-on-2: #f2f5ff;
+}
+html[data-theme="aesthetics"][data-skin-palette="riso"] {
+  color-scheme: light;
+  --bg: #f3f3ee; --bg-2: #fbfbf7; --card: #ffffff; --border: #e0e0d6;
+  --fg: #12141a; --muted: #62666f; --primary: #ff5c8a;
+  --aes-1: #ff5c8a; --aes-2: #2f6bff; --aes-3: #ffd400;
+  --accent: #ff5c8a; --accent-soft: rgba(255, 92, 138, 0.14);
+  --ai-color: #2f6bff; --code-bg: #22242a; --mark-bg: rgba(255, 212, 0, 0.3);
+  --aes-glow-1: rgba(255, 92, 138, 0.26); --aes-glow-2: rgba(47, 107, 255, 0.22); --aes-glow-3: rgba(255, 212, 0, 0.3);
+  --aes-on-1: #fff2f6; --aes-on-2: #f2f6ff;
+}
+html[data-theme="aesthetics"][data-skin-palette="porcelain"] {
+  color-scheme: light;
+  --bg: #f5f4f8; --bg-2: #fdfcff; --card: #ffffff; --border: #e4e2ee;
+  --fg: #15141c; --muted: #6a6778; --primary: #4a3aff;
+  --aes-1: #4a3aff; --aes-2: #ff7a9c; --aes-3: #12b981;
+  --accent: #4a3aff; --accent-soft: rgba(74, 58, 255, 0.14);
+  --ai-color: #ff7a9c; --code-bg: #201f2a; --mark-bg: rgba(18, 185, 129, 0.22);
+  --aes-glow-1: rgba(74, 58, 255, 0.22); --aes-glow-2: rgba(255, 122, 156, 0.22); --aes-glow-3: rgba(18, 185, 129, 0.2);
+  --aes-on-1: #f4f3ff; --aes-on-2: #2a0713;
+}
+html[data-theme="aesthetics"][data-skin-palette="mint"] {
+  color-scheme: light;
+  --bg: #ecf6f1; --bg-2: #f8fdfa; --card: #ffffff; --border: #d6e8de;
+  --fg: #0c1a14; --muted: #57706a; --primary: #0f9d63;
+  --aes-1: #0f9d63; --aes-2: #ff6b5e; --aes-3: #1a5cff;
+  --accent: #0f9d63; --accent-soft: rgba(15, 157, 99, 0.14);
+  --ai-color: #1a5cff; --code-bg: #14201b; --mark-bg: rgba(26, 92, 255, 0.18);
+  --aes-glow-1: rgba(15, 157, 99, 0.22); --aes-glow-2: rgba(255, 107, 94, 0.22); --aes-glow-3: rgba(26, 92, 255, 0.2);
+  --aes-on-1: #f0fff8; --aes-on-2: #2b0b07;
+}
+
+/* ===== 三、玻璃表面 =====
+   这张清单与《博客书写规范》里「直角约定」那张表一一对应：
+   纸质主题给它们直角 + 实色底，玻璃主题换成圆角 + 半透明底 + 虚化。 */
+html[data-theme="aesthetics"] :is(
+  .post-card, .home-card, .update-item, .collection-card,
+  .friend-card, .post-nav a, .search-box, .term-item,
+  .settings-panel, .toc-panel, .font-panel, .pagination a, .pagination span
+) {
+  background: var(--glass-surface);
+  border-color: var(--glass-edge);
+  border-top-color: var(--glass-rim);
+  border-radius: var(--aes-r-m);
+  box-shadow: var(--glass-shadow);
+  -webkit-backdrop-filter: var(--glass-filter);
+  backdrop-filter: var(--glass-filter);
+}
+
+/* 悬停：底色更亮一档（纸质主题的位移 / 边框变色仍然生效） */
+html[data-theme="aesthetics"] :is(
+  .post-card, .home-card, .update-item, .collection-card,
+  .friend-card, .post-nav a, .term-item, .pagination a
+):hover {
+  background: var(--glass-surface-hover);
+}
+
+/* 卡片入场：纸质主题是「刻式」阶梯跳变，玻璃主题改成一次到位的淡入上浮 */
+@keyframes aes-rise {
+  from { opacity: 0; transform: translate3d(0, 18px, 0); }
+  to   { opacity: 1; transform: none; }
+}
+html[data-theme="aesthetics"] :is(
+  .post-card, .home-card, .update-item, .collection-card, .friend-card
+) {
+  animation: aes-rise 0.6s var(--aes-ease-out) backwards;
+}
+
+/* ===== 四、首页 =====
+   只覆盖观感（颜色 / 圆角 / 材质 / 排版），不碰尺寸与吸附几何：
+   屏高、交错下沉、吸附强度都由 globals.css 与 HomeSnap 决定。 */
+html[data-theme="aesthetics"] .hero-title {
+  font-weight: 400;
+  letter-spacing: -0.02em;
+}
+html[data-theme="aesthetics"] .hero-title em {
+  font-style: normal;
+  background: linear-gradient(100deg, var(--aes-1) 0%, var(--aes-3) 52%, var(--aes-2) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+html[data-theme="aesthetics"] .hero-sub {
+  color: var(--muted);
+  max-width: 46ch;
+}
+/* 向下滚动提示：做成一颗玻璃胶囊 */
+html[data-theme="aesthetics"] .hero-hint {
+  background: var(--glass-surface);
+  border: 1px solid var(--glass-edge);
+  border-radius: var(--aes-r-pill);
+  padding: 0.55em 1.1em;
+  box-shadow: var(--glass-shadow);
+  -webkit-backdrop-filter: var(--glass-filter);
+  backdrop-filter: var(--glass-filter);
+}
+html[data-theme="aesthetics"] .section-title {
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+html[data-theme="aesthetics"] .section-sub {
+  color: var(--muted);
+}
+/* 更新列表：等宽数字的日期 + 主色 NEW 角标 */
+html[data-theme="aesthetics"] .update-date {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+html[data-theme="aesthetics"] .update-tag {
+  background: var(--aes-1);
+  color: var(--aes-on-1);
+  border-radius: var(--aes-r-pill);
+}
+/* 随便看看：栏目标签 + 元信息 */
+html[data-theme="aesthetics"] .home-card {
+  border-radius: var(--aes-r-l);
+}
+html[data-theme="aesthetics"] .home-card-cat {
+  color: var(--aes-1);
+  font-size: 0.72em;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+html[data-theme="aesthetics"] .home-card-meta {
+  color: var(--muted);
+  font-size: 0.82em;
+}
+html[data-theme="aesthetics"] .home-card.ai {
+  border-color: color-mix(in srgb, var(--ai-color) 45%, transparent);
+}
+/* 全部文章入口：胶囊按钮，hover 浮起 */
+html[data-theme="aesthetics"] .all-posts-more {
+  border-radius: var(--aes-r-pill);
+  transition: transform 0.28s var(--aes-ease-spring), box-shadow 0.28s var(--aes-ease-out);
+}
+html[data-theme="aesthetics"] .all-posts-more:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--glass-shadow);
+}
+/* 分页指示点：纸质主题是方块，玻璃主题改成胶囊，当前页填主色 */
+html[data-theme="aesthetics"] .page-indicator .page-dot {
+  border-radius: var(--aes-r-pill);
+  border-color: var(--glass-edge);
+  transition: background-color 0.22s var(--aes-ease-out), transform 0.28s var(--aes-ease-spring);
+}
+html[data-theme="aesthetics"] .page-indicator .page-dot:hover {
+  transform: scale(1.25);
+}
+html[data-theme="aesthetics"] .page-indicator .page-dot.active {
+  background: var(--aes-1);
+  border-color: transparent;
+}
+
+/* ===== 五、顶栏与页脚 =====
+   顶栏本来就是半透明 + 虚化的，玻璃主题把它调厚一档，页脚对齐同一材质。 */
+html[data-theme="aesthetics"] .site-header {
+  background: color-mix(in srgb, var(--bg) 72%, transparent);
+  border-bottom-color: var(--glass-edge);
+  -webkit-backdrop-filter: blur(14px) saturate(1.5);
+  backdrop-filter: blur(14px) saturate(1.5);
+}
+html[data-theme="aesthetics"] :is(.icon-btn, .brand-switch button) {
+  border-radius: var(--aes-r-pill);
+  border-color: var(--glass-edge);
+  background: var(--glass-surface);
+}
+html[data-theme="aesthetics"] :is(.image-placeholder, .image-placeholder img) {
+  border-radius: var(--aes-r-m);
+}
+html[data-theme="aesthetics"] .friends-link {
+  border-radius: var(--aes-r-pill);
+}
+html[data-theme="aesthetics"] .friends-link:hover {
+  color: var(--aes-1);
+}
+html[data-theme="aesthetics"] .footer {
+  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--bg-2) 70%, transparent));
+  border-top-color: var(--glass-edge);
+}
+html[data-theme="aesthetics"] .footer-link:hover {
+  color: var(--aes-1);
+}
+
+/* ===== 六、氛围层：氛围光 + 颗粒 =====
+   纸质主题那张跟着鼠标动的点阵 canvas 在玻璃主题里关掉（它是根布局里 <body>
+   的直接子元素），换成三团缓慢漂移的色光 + 一层噪点。两者都听设置页的开关。 */
+html[data-theme="aesthetics"] body > canvas {
+  display: none;
+}
+html[data-theme="aesthetics"] html,
+html[data-theme="aesthetics"] body {
+  background-color: var(--bg);
+}
+html[data-theme="aesthetics"] body::before {
+  content: "";
+  position: fixed;
+  inset: -20vmax;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(38vmax 38vmax at 12% 8%, var(--aes-glow-1), transparent 70%),
+    radial-gradient(42vmax 42vmax at 88% 78%, var(--aes-glow-2), transparent 70%),
+    radial-gradient(30vmax 30vmax at 62% 26%, var(--aes-glow-3), transparent 72%);
+  animation: aes-drift 46s ease-in-out infinite alternate;
+}
+html[data-theme="aesthetics"] body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.32;
+  mix-blend-mode: soft-light;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.42'/%3E%3C/svg%3E");
+}
+@keyframes aes-drift {
+  from { transform: translate3d(-2%, -1%, 0) scale(1); }
+  to   { transform: translate3d(3%, 2%, 0) scale(1.08); }
+}
+/* 背景动效=关闭：不画氛围光与颗粒 */
+html[data-theme="aesthetics"][data-bg="off"] body::before,
+html[data-theme="aesthetics"][data-bg="off"] body::after {
+  display: none;
+}
+/* 背景动效=减弱：留氛围光，压暗噪点 */
+html[data-theme="aesthetics"][data-bg="dim"] body::after {
+  opacity: 0.16;
+}
+/* 动画强度=关闭：氛围光定格 */
+html[data-theme="aesthetics"][data-motion="off"] body::before {
+  animation: none;
+}
+
+/* ===== 七、降级与无障碍 =====
+   不支持 backdrop-filter 的内核：底色加厚到 88%，不做虚化，卡片依然有底、读得清；
+   系统「减少透明度」同样处理。 */
+@supports not ((backdrop-filter: blur(4px)) or (-webkit-backdrop-filter: blur(4px))) {
+  html[data-theme="aesthetics"] {
+    --glass-tint: var(--glass-tint-strong);
+    --glass-tint-2: var(--glass-tint-strong);
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  html[data-theme="aesthetics"] {
+    --glass-tint: var(--glass-tint-strong);
+    --glass-tint-2: var(--glass-tint-strong);
+    --glass-filter: none;
+  }
+  html[data-theme="aesthetics"] body::after {
+    display: none;
+  }
+}
+html[data-theme="aesthetics"] :focus-visible {
+  outline: 2px solid var(--aes-1);
+  outline-offset: 3px;
+  border-radius: var(--aes-r-s);
+}
