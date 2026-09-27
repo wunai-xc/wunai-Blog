@@ -1,3 +1,19 @@
+/* ==========================================================================
+   AestheticsHome.tsx — 首页（首页长滚动那一版）
+   --------------------------------------------------------------------------
+   本文件是服务端组件（app/[lang]/page.tsx 直接渲染它），不要加 "use client"：
+   它是 async 的、要读文件系统取文章，并已把需要浏览器能力的两件事交给客户端
+   子组件（HomeFx 管滚动揭示与数字滚动、PaletteGrid 管换肤）。
+
+   本次改动只落在 PostCard 上（见下面的注释）：
+     · 卡片外面多套一层 .ah-card-glow 壳，用来画「斜切光板」——
+       伪元素永远画在元素自己的背景之上，光板画在 .ah-card 上会盖住卡片内容；
+     · 文章有封面图（post.thumbnail）时，封面里放一个铺满的 <img>，
+       图挂了或本来就没有图，底下的渐变色露出来当兜底；
+     · 悬停浮出的两个小玻璃方块 .ah-card-spark。
+   这三样的样式都在 app/aesthetics-home.css 第六节，只对玻璃主题生效。
+   ========================================================================== */
+
 import {
   SITE,
   getHomeShowcase,
@@ -59,8 +75,20 @@ function Marquee({ items, xl }: { items: string[]; xl?: boolean }) {
   );
 }
 
-/** 文章卡片。封面是一道按当前配色算出来的渐变（没有位图），
- *  角度按序号错开，免得每张卡看起来都是同一块布。 */
+/** 文章卡片（斜切光板 + 玻璃面板）。
+ *
+ *  结构分三层，缺一不可：
+ *    1. 外层壳 .ah-card-glow —— 斜切光板（::before / ::after）与浮出的小方块都画在这里。
+ *       壳必须是栅格里的那一格：光板要探出卡片边缘，卡片不能有 overflow 裁剪；
+ *       而伪元素永远在元素自己的背景之上，所以光板不能画在卡片本身上。
+ *    2. 卡片 .ah-card —— 玻璃面（aesthetics.css 提供的 --glass-surface + 虚化），
+ *       抬到 z-index 1，于是玻璃把背后的光板糊了一层，字仍然是清楚的。
+ *    3. 封面 .ah-card-media —— 有封面图就铺图，没有就是一道按当前配色算的渐变。
+ *
+ *  封面图取 post.thumbnail（frontmatter 的 cover.image，没有则正文第一张图），
+ *  与纸质主题的 .post-card-thumb 同一个数据源、同一个 referrerPolicy：
+ *  图可能是外链，对方禁止外链时 img 什么都不画，底下的渐变露出来顶上。
+ */
 function PostCard({
   post,
   lang,
@@ -74,38 +102,60 @@ function PostCard({
   feature?: boolean;
   readLabel: string;
 }) {
+  /* 渐变角度按序号错开，免得每张卡看起来都是同一块布 */
   const angle = `${105 + index * 14}deg`;
+  const image = post.thumbnail;
   return (
-    <article
-      className={`ah-card${feature ? " is-feature" : ""}`}
+    /* is-feature 两边都带：壳上那份管栅格占位（格子里现在放的是壳），
+       卡片上那份留给既有的封面比例与标题字号规则。 */
+    <div
+      className={`ah-card-glow${feature ? " is-feature" : ""}`}
       data-ah-reveal="up"
       style={{ "--d": `${(index * 0.07).toFixed(2)}s` } as CSSVars}
     >
-      <a
-        className="ah-card-link"
-        href={`/${lang}/posts/${encodeURIComponent(post.slug)}/`}
-        aria-label={post.title}
-      />
-      <div className="ah-card-media" style={{ "--ah-angle": angle } as CSSVars}>
-        <span className="ah-card-lines" aria-hidden="true" />
-        <span className="ah-card-num" aria-hidden="true">
-          {String(index + 1).padStart(2, "0")}
-        </span>
-      </div>
-      <div className="ah-card-body">
-        {post.categories[0] && <p className="ah-card-cat">{post.categories[0]}</p>}
-        <h3 className="ah-card-title">{post.title}</h3>
-        {post.summary && <p className="ah-card-excerpt">{post.summary}</p>}
-        <p className="ah-card-meta">
-          <span>{post.date}</span>
-          <span aria-hidden="true">/</span>
-          <span>
-            {readingMinutes(post.wordCount)} {readLabel}
+      <article className={`ah-card${feature ? " is-feature" : ""}`}>
+        <a
+          className="ah-card-link"
+          href={`/${lang}/posts/${encodeURIComponent(post.slug)}/`}
+          aria-label={post.title}
+        />
+        <div className="ah-card-media" style={{ "--ah-angle": angle } as CSSVars}>
+          {image ? (
+            /* 图片可能是任意域名，用原生 img（next/image 需预声明 remotePatterns）；
+               referrerPolicy="no-referrer" 与纸质主题的缩略图一致，避免图床拦外链。 */
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img
+              className="ah-card-image"
+              src={image}
+              alt=""
+              loading="lazy"
+              decoding="async"
+              referrerPolicy="no-referrer"
+            />
+          ) : (
+            <span className="ah-card-lines" aria-hidden="true" />
+          )}
+          <span className="ah-card-num" aria-hidden="true">
+            {String(index + 1).padStart(2, "0")}
           </span>
-          {post.isAI && <span className="ah-flag">AI</span>}
-        </p>
-      </div>
-    </article>
+        </div>
+        <div className="ah-card-body">
+          {post.categories[0] && <p className="ah-card-cat">{post.categories[0]}</p>}
+          <h3 className="ah-card-title">{post.title}</h3>
+          {post.summary && <p className="ah-card-excerpt">{post.summary}</p>}
+          <p className="ah-card-meta">
+            <span>{post.date}</span>
+            <span aria-hidden="true">/</span>
+            <span>
+              {readingMinutes(post.wordCount)} {readLabel}
+            </span>
+            {post.isAI && <span className="ah-flag">AI</span>}
+          </p>
+        </div>
+      </article>
+      {/* 悬停时从左上 / 右下浮出的两个小玻璃方块（见 aesthetics-home.css 第六节） */}
+      <span className="ah-card-spark" aria-hidden="true" />
+    </div>
   );
 }
 

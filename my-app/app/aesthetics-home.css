@@ -16,8 +16,16 @@
    玻璃材质本身（--glass-surface / --glass-filter）由 aesthetics.css 提供，
    这里只用 `var(…, 回退值)` 引用：纸质主题下自动退成实色底。
 
+   首页卡片另有一层「斜切光板」（第六节）：栅格里的每一格现在放的是外壳
+   .ah-card-glow，两片斜切光板（::before / ::after）与悬停浮出的两个小方块
+   （.ah-card-spark）都画在外壳上，卡片本体 .ah-card 抬到 z-index 1 ——
+   伪元素永远画在元素自己的背景之上，光板画在卡片上会盖住封面与文字。
+   这一段只对玻璃主题（html[data-theme="aesthetics"]）生效：纸质主题的卡片是
+   实色底（--glass-surface 未定义，落到 --ah-surface），光板会被整块盖住、
+   只在卡片上下探出两条硬边的色块，所以纸质主题保持现状。
+
    动效听既有的两个开关：html[data-motion="off"]（设置页「动画强度：关闭」）
-   与 prefers-reduced-motion。逐字上升、跑马灯、滚动揭示都做了降级。
+   与 prefers-reduced-motion。逐字上升、跑马灯、滚动揭示、小方块呼吸都做了降级。
    ========================================================================== */
 
 /* ===== 一、作用域变量 ===== */
@@ -36,6 +44,9 @@
   --ah-line-strong: #7b7b8a;
   --ah-line-strong: color-mix(in srgb, var(--fg) 30%, transparent);
   --ah-shadow: 0 26px 60px -34px rgba(0, 0, 0, 0.55);
+  /* 卡片外壳那两片斜切光板的颜色：默认取当前配色里的主色与刺激色 */
+  --ah-glow-a: var(--ah-c1);
+  --ah-glow-b: var(--ah-c3);
 
   /* 字体：与静态站同一套系统字体栈（不请求外部字体） */
   --ah-font-display: Georgia, "Times New Roman", "Songti SC", "Noto Serif SC",
@@ -370,6 +381,118 @@
   gap: var(--ah-space-m);
   grid-template-columns: minmax(0, 1fr);
 }
+
+/* 卡片外壳（.ah-card-glow）：栅格里的那一格。
+   卡片本体抬到 z-index 1 并撑满整格 —— 外壳被栅格拉高时卡片跟着填满，
+   光板则留在卡片身后（伪元素永远画在元素自己的背景之上，所以光板必须
+   画在外壳上，画在 .ah-card 上会盖住封面与文字）。
+   光板与方块见下面「斜切光板」一段。 */
+.ah-card-glow {
+  position: relative;
+  border-radius: var(--ah-radius-l);
+}
+.ah-card-glow > .ah-card {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+}
+
+/* 斜切光板 + 悬停浮出的两个小玻璃方块 -------------------------------------
+   光板默认 skewX(15deg)、只从卡片上边与下边探出一角，第二片 blur(30px)
+   散成光晕；悬停时两片一起摆正、铺满整张卡片，成为一圈霓虹描边，
+   卡片玻璃透出的颜色也随之变浓（光板压在卡片身后，卡片那层 backdrop-filter
+   会把它们虚化一次，字仍然是清楚的）。外壳刻意不设 isolation：
+   设了之后卡片的 backdrop-filter 只采样外壳内部，背后那片氛围光就糊不到。
+   键盘聚焦到卡片链接时同样展开（:focus-within），不然只用键盘的人看不到。
+   两片光板用的是当前配色的主色与刺激色（--ah-glow-a / --ah-glow-b）。 */
+html[data-theme="aesthetics"] .ah-card-glow::before,
+html[data-theme="aesthetics"] .ah-card-glow::after {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  top: -1rem;
+  left: 12%;
+  width: 54%;
+  height: calc(100% + 2rem);
+  border-radius: var(--ah-radius-l);
+  background: linear-gradient(315deg, var(--ah-glow-a, var(--ah-c1)), var(--ah-glow-b, var(--ah-c3)));
+  transform: skewX(15deg);
+  pointer-events: none;
+  transition: transform var(--ah-dur) var(--ah-ease-out), left var(--ah-dur) var(--ah-ease-out),
+    width var(--ah-dur) var(--ah-ease-out), opacity var(--ah-dur) var(--ah-ease-out);
+}
+html[data-theme="aesthetics"] .ah-card-glow::before { opacity: 0.62; }
+html[data-theme="aesthetics"] .ah-card-glow::after {
+  left: 18%;
+  opacity: 0.5;
+  filter: blur(30px);
+  transform: skewX(15deg) scale(1.04);
+}
+html[data-theme="aesthetics"] .ah-card-glow:hover::before,
+html[data-theme="aesthetics"] .ah-card-glow:hover::after,
+html[data-theme="aesthetics"] .ah-card-glow:focus-within::before,
+html[data-theme="aesthetics"] .ah-card-glow:focus-within::after {
+  left: 0;
+  width: 100%;
+  opacity: 0.82;
+  transform: skewX(0deg);
+}
+
+/* 两个小方块：左上角一个、右下角一个，默认缩成 0 并透明，
+   悬停时各自向外浮出 50px，并保持 2s 的上下呼吸（关键帧 ah-card-spark-float，
+   第二个用负延迟错开半拍）。 */
+html[data-theme="aesthetics"] .ah-card-spark {
+  position: absolute;
+  inset: 0;
+  z-index: 2; /* 压在卡片（z-index 1）之上，方块才浮得出来 */
+  pointer-events: none;
+}
+html[data-theme="aesthetics"] .ah-card-spark::before,
+html[data-theme="aesthetics"] .ah-card-spark::after {
+  content: "";
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  border-radius: var(--ah-radius-s);
+  /* 两行写法各留一个兜底：认不出 color-mix() 的内核用第一行的白，
+     认得出的跟着正文字色走 */
+  background: rgba(255, 255, 255, 0.14);
+  background: color-mix(in srgb, var(--ah-text) 10%, transparent);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-color: color-mix(in srgb, var(--ah-text) 26%, transparent);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.18);
+  transition: width var(--ah-dur) var(--ah-ease-out), height var(--ah-dur) var(--ah-ease-out),
+    top var(--ah-dur) var(--ah-ease-out), left var(--ah-dur) var(--ah-ease-out),
+    right var(--ah-dur) var(--ah-ease-out), bottom var(--ah-dur) var(--ah-ease-out),
+    opacity var(--ah-dur-fast) var(--ah-ease-out);
+  animation: ah-card-spark-float 2s var(--ah-ease-in-out) infinite;
+}
+html[data-theme="aesthetics"] .ah-card-spark::before { top: 0; left: 0; }
+html[data-theme="aesthetics"] .ah-card-spark::after {
+  right: 0;
+  bottom: 0;
+  animation-delay: -1s;
+}
+html[data-theme="aesthetics"] .ah-card-glow:hover .ah-card-spark::before,
+html[data-theme="aesthetics"] .ah-card-glow:focus-within .ah-card-spark::before {
+  top: -50px;
+  left: 50px;
+  width: 70px;
+  height: 70px;
+  opacity: 1;
+}
+html[data-theme="aesthetics"] .ah-card-glow:hover .ah-card-spark::after,
+html[data-theme="aesthetics"] .ah-card-glow:focus-within .ah-card-spark::after {
+  right: 50px;
+  bottom: -50px;
+  width: 50px;
+  height: 50px;
+  opacity: 1;
+}
+
 .ah-card {
   position: relative;
   display: flex;
@@ -393,7 +516,9 @@
 .ah-card-link { position: absolute; inset: 0; z-index: 3; }
 
 /* 封面：一道按当前配色算出来的渐变（没有位图）。
-   角度按卡片序号错开，避免每张卡看起来是同一块布。 */
+   角度按卡片序号错开，避免每张卡看起来是同一块布。
+   文章有封面图（frontmatter 的 cover.image，没有则正文第一张图）时，
+   上面再铺一层铺满的 <img>；图没加载出来就露出下面这道渐变。 */
 .ah-card-media {
   position: relative;
   aspect-ratio: 16 / 10;
@@ -404,6 +529,13 @@
     var(--ah-c2) 54%,
     var(--ah-c3) 100%
   );
+}
+.ah-card-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 .ah-card-media::after {
   content: "";
@@ -713,16 +845,22 @@
   0%, 100% { transform: scale(1); opacity: 1; }
   50% { transform: scale(1.6); opacity: 0.4; }
 }
+/* 卡片上两个小玻璃方块的上下呼吸（第六节） */
+@keyframes ah-card-spark-float {
+  0%, 100% { transform: translateY(10px); }
+  50% { transform: translateY(-10px); }
+}
 
 /* ===== 十一、断点 ===== */
 @media (min-width: 48rem) {
   .ah-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .ah-card.is-feature { grid-column: span 2; }
+  /* 占两列的是外壳 —— 栅格里的那一格现在是外壳，不是卡片本身 */
+  .ah-card-glow.is-feature { grid-column: span 2; }
   .ah-rail { grid-template-columns: 1.35fr 1fr; align-items: start; }
 }
 @media (min-width: 62rem) {
   .ah-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .ah-card.is-feature { grid-column: span 2; }
+  .ah-card-glow.is-feature { grid-column: span 2; }
 }
 
 /* ===== 十二、降级与无障碍 =====
@@ -738,6 +876,15 @@ html[data-motion="off"] [data-ah-reveal] {
   transform: none;
   transition: none;
 }
+/* 卡片上的光板与小方块：不再呼吸、过渡时间归零，
+   悬停后那一下描边变化仍然保留（与静态站同口径）。 */
+html[data-motion="off"] .ah-card-glow::before,
+html[data-motion="off"] .ah-card-glow::after,
+html[data-motion="off"] .ah-card-glow > .ah-card,
+html[data-motion="off"] .ah-card-spark::before,
+html[data-motion="off"] .ah-card-spark::after { transition: none; }
+html[data-motion="off"] .ah-card-spark::before,
+html[data-motion="off"] .ah-card-spark::after { animation: none; }
 
 @media (prefers-reduced-motion: reduce) {
   .ah-word { animation: none; transform: none; opacity: 1; }
@@ -745,6 +892,13 @@ html[data-motion="off"] [data-ah-reveal] {
   .ah-live i,
   .ah-cue-line::after { animation: none; }
   [data-ah-reveal] { opacity: 1; transform: none; transition: none; }
+  html[data-theme="aesthetics"] .ah-card-glow::before,
+  html[data-theme="aesthetics"] .ah-card-glow::after,
+  html[data-theme="aesthetics"] .ah-card-glow > .ah-card,
+  html[data-theme="aesthetics"] .ah-card-spark::before,
+  html[data-theme="aesthetics"] .ah-card-spark::after { transition: none; }
+  html[data-theme="aesthetics"] .ah-card-spark::before,
+  html[data-theme="aesthetics"] .ah-card-spark::after { animation: none; }
 }
 
 /* 不支持 backdrop-filter 的内核（老 Android WebView / Safari 13 一类）：
@@ -765,5 +919,9 @@ html[data-motion="off"] [data-ah-reveal] {
   .ah-marquee-band { display: none; }
   .ah-card,
   .ah-palette-card { background: none; border-color: #ccc; }
+  /* 光板与小方块是装饰，打印时没必要印出两块大色卡 */
+  .ah-card-glow::before,
+  .ah-card-glow::after,
+  .ah-card-spark { display: none; }
   .ah-hero { padding-block: 0; }
 }
