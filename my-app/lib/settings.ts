@@ -11,7 +11,7 @@ export type ReadWidth = "narrow" | "normal" | "wide";
 export type BgMode = "full" | "dim" | "off";
 export type Motion = "full" | "lite" | "off";
 
-/** 视觉主题：paper=纸质（默认，定义在 app/globals.css）、aesthetics=液态玻璃（app/aesthetics.css） */
+/** 视觉主题：aesthetics=玻璃（默认，定义在 app/aesthetics.css）、paper=纸质（回退，定义在 app/globals.css） */
 export type Skin = "paper" | "aesthetics";
 /** 玻璃主题的八套配色，前四套深色、后四套浅色；取值定义在 app/aesthetics.css */
 export type SkinPaletteId =
@@ -49,18 +49,26 @@ export interface SkinPaletteOption {
   id: SkinPaletteId;
   /** 预览色块用的颜色，与 app/aesthetics.css 里该配色 --aes-1 的取值保持一致 */
   swatch: string;
+  /** 拉丁名，首页配色网格与设置页 title 用（专有名词，不做翻译） */
+  name: string;
+  /** 该套配色自带明暗（color-scheme 由配色决定，与 html.dark 无关） */
+  scheme: "dark" | "light";
+  /** 主色 / 副色 / 刺激色，顺序与 --aes-1/2/3 一致；首页配色网格的三条色块用它 */
+  swatches: [string, string, string];
 }
 
-/** 玻璃主题的八套配色。真正的颜色定义在 app/aesthetics.css（声明式、切主题不闪），这里只用于取数 */
+/** 玻璃主题的八套配色。真正的颜色定义在 app/aesthetics.css（声明式、切主题不闪），
+ *  这里只用于取数：预览色块、首页配色网格、顶栏日夜按钮的轮换顺序。
+ *  色值必须与 aesthetics.css 里那八组 --aes-1/2/3 逐字对齐，改色时两边一起改。 */
 export const SKIN_PALETTES: SkinPaletteOption[] = [
-  { id: "void", swatch: "#c8ff2f" },
-  { id: "bloom", swatch: "#ff2fb9" },
-  { id: "ember", swatch: "#ff6a13" },
-  { id: "abyss", swatch: "#14f1c8" },
-  { id: "solar", swatch: "#ff4b1f" },
-  { id: "riso", swatch: "#ff5c8a" },
-  { id: "porcelain", swatch: "#4a3aff" },
-  { id: "mint", swatch: "#0f9d63" },
+  { id: "void", swatch: "#c8ff2f", name: "Void", scheme: "dark", swatches: ["#c8ff2f", "#6b5cff", "#ff4d6d"] },
+  { id: "bloom", swatch: "#ff2fb9", name: "Bloom", scheme: "dark", swatches: ["#ff2fb9", "#00e5ff", "#ffd166"] },
+  { id: "ember", swatch: "#ff6a13", name: "Ember", scheme: "dark", swatches: ["#ff6a13", "#ffe14d", "#ff2e63"] },
+  { id: "abyss", swatch: "#14f1c8", name: "Abyss", scheme: "dark", swatches: ["#14f1c8", "#ffc857", "#4f8cff"] },
+  { id: "solar", swatch: "#ff4b1f", name: "Solar", scheme: "light", swatches: ["#ff4b1f", "#1b3bd8", "#ffb703"] },
+  { id: "riso", swatch: "#ff5c8a", name: "Riso", scheme: "light", swatches: ["#ff5c8a", "#2f6bff", "#ffd400"] },
+  { id: "porcelain", swatch: "#4a3aff", name: "Porcelain", scheme: "light", swatches: ["#4a3aff", "#ff7a9c", "#12b981"] },
+  { id: "mint", swatch: "#0f9d63", name: "Mint", scheme: "light", swatches: ["#0f9d63", "#ff6b5e", "#1a5cff"] },
 ];
 
 export const DEFAULTS = {
@@ -69,7 +77,10 @@ export const DEFAULTS = {
   bgMode: "full" as BgMode,
   acrylic: true,
   motion: "full" as Motion,
-  skin: "paper" as Skin,
+  /* 默认主题是玻璃（第二套视觉）。改这里必须同步 app/layout.tsx 内联脚本里的同一处
+     判断（那边写的是 `localStorage.getItem('skin') || 'aesthetics'`），
+     否则首屏会先画一遍纸质再跳到玻璃。 */
+  skin: "aesthetics" as Skin,
   skinPalette: "void" as SkinPaletteId,
 };
 

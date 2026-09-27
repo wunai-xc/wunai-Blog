@@ -1,0 +1,129 @@
+/* ==========================================================================
+   aesthetics-shell.css — 顶栏与页脚的视觉（第二套视觉第一期）
+   --------------------------------------------------------------------------
+   分工说清楚，免得以后两处打架：
+     · app/aesthetics.css 管「换肤」：把纸质主题既有的表面类换成玻璃材质
+       （.site-header 的底色与虚化、.icon-btn / .brand-switch 按钮、
+       .image-placeholder、.friends-link、页脚底色与 .footer-link:hover）
+     · 本文件管本期的视觉收尾：品牌区排版、tagline 行、all posts 胶囊、
+       顶栏的分隔高光、页脚跑马灯带、页脚链接的玻璃悬停底
+
+   ⚠️ 两个文件都不动排布。顶栏还是 components/Header.tsx 里那三块
+   （品牌区 / 友链 / 图片）加 tagline 行，顺序、比例、间距一行未改，
+   改的只有字体、颜色、圆角、材质与 hover；页脚的列结构同理。
+   选择器统一以 html[data-theme="aesthetics"] 起头：纸质主题一个像素都不受影响。
+   ========================================================================== */
+
+/* ===== 一、顶栏 ===== */
+/* 底底与虚化已在 aesthetics.css；这里只加一道下缘高光与一层很淡的投影，
+   让它从氛围光上「浮」起来，而不靠加粗边框去分明。 */
+html[data-theme="aesthetics"] .site-header {
+  box-shadow: 0 1px 0 var(--glass-edge, transparent),
+    0 22px 44px -38px rgba(0, 0, 0, 0.85);
+}
+
+/* 品牌区：大号 logo 换成衬线（与首页大标题同一套字体），字距收紧一档；
+   闪烁光标改成本套配色的主色。 */
+html[data-theme="aesthetics"] .brand .logo {
+  font-family: Georgia, "Times New Roman", "Songti SC", "Noto Serif SC",
+    "Source Han Serif SC", STSong, SimSun, serif;
+  letter-spacing: -0.015em;
+}
+html[data-theme="aesthetics"] .logo .cursor {
+  background: var(--aes-1, var(--accent));
+  animation: shell-caret 1.1s steps(1) infinite;
+}
+@keyframes shell-caret {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+/* tagline 行：等宽小字 + 字距，与首页的 mono 标签同一口径 */
+html[data-theme="aesthetics"] .tagline-row {
+  font-family: ui-monospace, "SFMono-Regular", "JetBrains Mono", Menlo,
+    Consolas, "Liberation Mono", monospace;
+  font-size: 0.78em;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+html[data-theme="aesthetics"] .tagline a {
+  color: var(--aes-1, var(--accent));
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.22s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+html[data-theme="aesthetics"] .tagline a:hover {
+  border-bottom-color: currentColor;
+}
+
+/* all posts →：胶囊，hover 时底亮一档并向右轻推 */
+html[data-theme="aesthetics"] .all-posts {
+  padding: 0.15em 0.7em;
+  border: 1px solid var(--glass-edge, transparent);
+  border-radius: 999px;
+  background: var(--glass-surface, transparent);
+  transition: background-color 0.22s cubic-bezier(0.22, 0.61, 0.36, 1),
+    transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+html[data-theme="aesthetics"] .all-posts:hover {
+  background: var(--glass-surface-hover, transparent);
+  transform: translateX(2px);
+}
+
+/* 友链图标与文字：文字用主色，图标跟着走（纸质主题里 .friends-link:hover 的
+   主色在 aesthetics.css，这里只管常态观感与胶囊内边距） */
+html[data-theme="aesthetics"] .friends-link {
+  padding: 0.35em 0.8em;
+  gap: 0.5em;
+  font-size: 0.82em;
+  letter-spacing: 0.06em;
+}
+html[data-theme="aesthetics"] .friends-icon {
+  color: var(--aes-1, var(--accent));
+}
+
+/* ===== 二、页脚 ===== */
+/* 跑马灯带：复用 aesthetics-home.css 的 .ah-marquee / .ah-marquee-track 规则
+   （同一套滑动动画），但那个文件里的 --ah-* 变量定义在 .ah 上，而页脚不在
+   .ah 里 —— 所以这里只把用得到的那几个变量补上，不重写轨道规则。 */
+html[data-theme="aesthetics"] .footer-marquee {
+  --ah-c1: var(--aes-1, var(--accent));
+  --ah-font-display: Georgia, "Times New Roman", "Songti SC",
+    "Noto Serif SC", STSong, SimSun, serif;
+  --ah-font-mono: ui-monospace, "SFMono-Regular", "JetBrains Mono", Menlo,
+    Consolas, "Liberation Mono", monospace;
+  --ah-step-1: clamp(1.2rem, 1.12rem + 0.4vw, 1.4rem);
+  --ah-step-2: clamp(1.45rem, 1.3rem + 0.75vw, 1.85rem);
+  --ah-marquee-dur: 46s;
+  border-block: 1px solid var(--glass-edge, transparent);
+  padding-block: 0.7rem;
+}
+
+/* 页脚链接：悬停时跟卡片同一层玻璃底（纸质主题的位移/变色不动） */
+html[data-theme="aesthetics"] .footer-link {
+  padding: 0.5em 0.75em;
+  border: 1px solid transparent;
+  border-radius: 1rem;
+  transition: background-color 0.22s cubic-bezier(0.22, 0.61, 0.36, 1),
+    border-color 0.22s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+html[data-theme="aesthetics"] .footer-link:hover {
+  background: var(--glass-surface-hover, transparent);
+  border-color: var(--glass-edge, transparent);
+}
+html[data-theme="aesthetics"] .footer-link-icon {
+  color: var(--aes-1, var(--accent));
+}
+
+/* ===== 三、降级 =====
+   动画强度=关闭 / 系统减少动效：光标不闪，跑马灯定格。 */
+html[data-motion="off"] .logo .cursor { animation: none; opacity: 1; }
+html[data-motion="off"] .ah-marquee-track { animation: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme="aesthetics"] .logo .cursor { animation: none; opacity: 1; }
+  html[data-theme="aesthetics"] .ah-marquee-track { animation: none; }
+}
+
+@media print {
+  html[data-theme="aesthetics"] .footer-marquee { display: none; }
+}

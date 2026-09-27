@@ -1,0 +1,769 @@
+/* ==========================================================================
+   aesthetics-home.css — 首页（第二套视觉的第一期：整段照搬静态站排版）
+   --------------------------------------------------------------------------
+   为什么另起一个文件、而不是往 aesthetics.css 里塞：
+   · aesthetics.css 的职责是「换肤」——把纸质主题的既有类名改成玻璃材质，
+     它明确写着「不碰尺寸与吸附几何」。这一期搬的是版式与动效本身（首屏、
+     跑马灯、卡片网格、数据栏、配色网格），性质不同，分开之后回退纸质主题
+     也不用从这里摘规则。
+   · 类名统一加 `ah-` 前缀（ah = aesthetics home），刻意不与 globals.css 里
+     纸质首页的类名（.home-pager / .home-page / .hero-* / .update-* / .stagger-*）
+     重名：两套首页样式并存期间谁也不影响谁，纸质那套规则一行未改。
+
+   变量只在 `.ah` 作用域里定义，色值全部取自站内既有令牌：
+     --aes-1/2/3 → 玻璃配色里的主色 / 副色 / 刺激色（app/aesthetics.css 的八套）
+     --bg/--card/--border/--fg/--muted → 两套主题都有，因此切回纸质也读得过去
+   玻璃材质本身（--glass-surface / --glass-filter）由 aesthetics.css 提供，
+   这里只用 `var(…, 回退值)` 引用：纸质主题下自动退成实色底。
+
+   动效听既有的两个开关：html[data-motion="off"]（设置页「动画强度：关闭」）
+   与 prefers-reduced-motion。逐字上升、跑马灯、滚动揭示都做了降级。
+   ========================================================================== */
+
+/* ===== 一、作用域变量 ===== */
+.ah {
+  /* 色彩：玻璃配色优先，纸质主题回落到 --accent，不会读不到值 */
+  --ah-c1: var(--aes-1, var(--accent));
+  --ah-c2: var(--aes-2, var(--accent));
+  --ah-c3: var(--aes-3, var(--accent));
+  --ah-on-c1: var(--aes-on-1, var(--bg));
+  --ah-on-c2: var(--aes-on-2, var(--bg));
+  --ah-surface: var(--card);
+  --ah-text: var(--fg);
+  --ah-dim: var(--muted);
+  --ah-line: var(--border);
+  /* 描边加深一档：不支持 color-mix 的内核用上一行的灰，支持则按前景色算 */
+  --ah-line-strong: #7b7b8a;
+  --ah-line-strong: color-mix(in srgb, var(--fg) 30%, transparent);
+  --ah-shadow: 0 26px 60px -34px rgba(0, 0, 0, 0.55);
+
+  /* 字体：与静态站同一套系统字体栈（不请求外部字体） */
+  --ah-font-display: Georgia, "Times New Roman", "Songti SC", "Noto Serif SC",
+    "Source Han Serif SC", STSong, SimSun, serif;
+  --ah-font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "PingFang SC",
+    "HarmonyOS Sans SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+  --ah-font-mono: ui-monospace, "SFMono-Regular", "JetBrains Mono", Menlo,
+    Consolas, "Liberation Mono", monospace;
+
+  /* 字阶（流体排版）：与静态站 tokens.css 同式同值 */
+  --ah-step--2: clamp(0.7rem, 0.68rem + 0.1vw, 0.76rem);
+  --ah-step--1: clamp(0.82rem, 0.8rem + 0.15vw, 0.9rem);
+  --ah-step-0: clamp(1rem, 0.96rem + 0.2vw, 1.09rem);
+  --ah-step-1: clamp(1.2rem, 1.12rem + 0.4vw, 1.4rem);
+  --ah-step-2: clamp(1.45rem, 1.3rem + 0.75vw, 1.85rem);
+  --ah-step-3: clamp(1.8rem, 1.5rem + 1.4vw, 2.6rem);
+  --ah-step-4: clamp(2.2rem, 1.7rem + 2.3vw, 3.6rem);
+  --ah-step-5: clamp(2.7rem, 1.9rem + 3.6vw, 5rem);
+  --ah-step-6: clamp(3.2rem, 1.8rem + 6.4vw, 7.6rem);
+
+  /* 空间 */
+  --ah-space-3xs: 0.25rem;
+  --ah-space-2xs: 0.5rem;
+  --ah-space-xs: 0.75rem;
+  --ah-space-s: 1rem;
+  --ah-space-m: 1.5rem;
+  --ah-space-l: 2.25rem;
+  --ah-space-xl: 3.5rem;
+
+  --ah-container: 78rem;
+  --ah-gutter: clamp(1.15rem, 5vw, 3.5rem);
+  --ah-radius-s: 0.5rem;
+  --ah-radius-m: 1rem;
+  --ah-radius-l: 1.6rem;
+  --ah-radius-pill: 999px;
+
+  --ah-ease-out: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ah-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ah-ease-in-out: cubic-bezier(0.65, 0.05, 0.36, 1);
+  --ah-dur-fast: 0.22s;
+  --ah-dur: 0.42s;
+  --ah-dur-slow: 0.9s;
+
+  font-family: var(--ah-font-sans);
+}
+
+/* 容器 ------------------------------------------------------------------- */
+.ah-container {
+  width: 100%;
+  max-width: var(--ah-container);
+  margin-inline: auto;
+  padding-inline: var(--ah-gutter);
+}
+
+/* ===== 二、按钮 =====
+   与纸质主题的 .btn 无关（那是直角 + 实色）。这里是胶囊 + hover 从下往上
+   涌起一道渐变底。 */
+.ah-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55em;
+  padding: 0.72em 1.25em;
+  border: 1px solid var(--ah-line);
+  border-radius: var(--ah-radius-pill);
+  background: transparent;
+  color: var(--ah-text);
+  font-size: var(--ah-step--1);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  overflow: hidden;
+  isolation: isolate;
+  transition: color var(--ah-dur-fast) var(--ah-ease-out),
+    border-color var(--ah-dur-fast) var(--ah-ease-out),
+    transform var(--ah-dur-fast) var(--ah-ease-spring),
+    box-shadow var(--ah-dur) var(--ah-ease-out);
+}
+.ah-btn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(100deg, var(--ah-c1) 0%, var(--ah-c3) 52%, var(--ah-c2) 100%);
+  transform: translateY(101%);
+  transition: transform var(--ah-dur) var(--ah-ease-out);
+}
+.ah-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--ah-shadow);
+}
+.ah-btn:hover::after { transform: translateY(0); }
+.ah-btn:active { transform: translateY(0) scale(0.98); }
+
+.ah-btn-primary {
+  background: var(--ah-c1);
+  border-color: transparent;
+  color: var(--ah-on-c1);
+  font-weight: 600;
+}
+.ah-btn-primary::after { background: var(--ah-c2); }
+.ah-btn-primary:hover { color: var(--ah-on-c2); }
+
+.ah-btn-ghost {
+  border-color: transparent;
+  color: var(--ah-dim);
+}
+.ah-btn-ghost:hover { color: var(--ah-text); }
+
+.ah-btn .ah-btn-arrow { transition: transform var(--ah-dur) var(--ah-ease-spring); }
+.ah-btn:hover .ah-btn-arrow { transform: translateX(4px); }
+
+/* ===== 三、首屏 ===== */
+.ah-hero {
+  position: relative;
+  padding-block: clamp(2.5rem, 9vw, 6rem) clamp(1.5rem, 4vw, 3rem);
+  overflow: hidden;
+}
+.ah-hero-inner {
+  display: grid;
+  gap: var(--ah-space-m);
+  justify-items: start;
+}
+
+.ah-kicker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0;
+  font-family: var(--ah-font-mono);
+  font-size: var(--ah-step--2);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ah-dim);
+}
+.ah-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  padding: 0.2em 0.6em;
+  border: 1px solid var(--ah-line-strong);
+  border-radius: var(--ah-radius-pill);
+  color: var(--ah-c1);
+}
+.ah-live i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ah-c1);
+  animation: ah-pulse 1.8s var(--ah-ease-in-out) infinite;
+}
+
+/* 首屏大标题：三行，中间一行走渐变；每个字自己带 --i，按序号错开上升 */
+.ah-hero-title {
+  margin: 0;
+  font-family: var(--ah-font-display);
+  font-size: var(--ah-step-6);
+  font-weight: 400;
+  line-height: 0.92;
+  letter-spacing: -0.035em;
+}
+.ah-line { display: block; overflow: hidden; }
+.ah-word,
+.ah-space { display: inline-block; }
+.ah-word {
+  animation: ah-text-rise 0.9s var(--ah-ease-out) both;
+  animation-delay: calc(var(--i, 0) * 0.028s + var(--line-delay, 0s));
+  will-change: transform;
+}
+.ah-line em {
+  font-style: italic;
+  font-weight: 300;
+  background: linear-gradient(100deg, var(--ah-c1) 0%, var(--ah-c3) 52%, var(--ah-c2) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  padding-right: 0.06em;
+}
+
+.ah-hero-sub {
+  max-width: 44ch;
+  margin: 0;
+  color: var(--ah-dim);
+  font-size: var(--ah-step-1);
+  line-height: 1.6;
+}
+
+.ah-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+.ah-cue {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: var(--ah-font-mono);
+  font-size: var(--ah-step--2);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ah-dim);
+}
+.ah-cue-line {
+  position: relative;
+  width: 60px;
+  height: 1px;
+  background: var(--ah-line);
+  overflow: hidden;
+}
+.ah-cue-line::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--ah-c1);
+  animation: ah-cue-scan 2.4s var(--ah-ease-in-out) infinite;
+}
+
+/* 三个色彩角色块：直接显示当前配色的主色 / 副色 / 刺激色 */
+.ah-figures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ah-space-m);
+  margin-top: var(--ah-space-2xs);
+}
+.ah-figure {
+  position: relative;
+  width: 84px;
+  height: 84px;
+  border: 1px solid var(--ah-line);
+  border-radius: var(--ah-radius-m);
+  overflow: hidden;
+}
+.ah-figure span {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: var(--ah-font-mono);
+  font-size: var(--ah-step--2);
+  letter-spacing: 0.12em;
+  color: var(--ah-on-c1);
+  background: var(--ah-fc, var(--ah-c1));
+  transition: transform var(--ah-dur-slow) var(--ah-ease-out);
+}
+.ah-figure:hover span { transform: scale(1.12) rotate(-4deg); }
+
+/* ===== 四、跑马灯（首屏标题条与页脚共用） =====
+   两条一模一样的轨道首尾相接：自己滑出 100% 时另一条正好补上，
+   所以循环处没有空白（只放一条会在末尾露出空隙）。 */
+.ah-marquee {
+  display: flex;
+  overflow: hidden;
+  user-select: none;
+}
+.ah-marquee-track {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 1.4rem;
+  min-width: 100%;
+  padding-right: 1.4rem;
+  animation: ah-marquee-slide var(--ah-marquee-dur, 26s) linear infinite;
+}
+.ah-marquee-track span {
+  font-family: var(--ah-font-display);
+  font-size: var(--ah-step-2);
+  white-space: nowrap;
+}
+.ah-marquee-track span[aria-hidden="true"] {
+  color: var(--ah-c1);
+  font-size: var(--ah-step-1);
+}
+.ah-marquee:hover .ah-marquee-track { animation-play-state: paused; }
+.ah-marquee-reverse .ah-marquee-track { animation-direction: reverse; }
+.ah-marquee-xl .ah-marquee-track span {
+  font-size: var(--ah-step-5);
+  letter-spacing: -0.02em;
+}
+.ah-marquee-band {
+  margin-top: var(--ah-space-l);
+  padding-block: 0.7rem;
+  border-block: 1px solid var(--ah-line);
+}
+
+/* ===== 五、区块与标题 ===== */
+.ah-section { padding-block: clamp(2.5rem, 6vw, 5.5rem); }
+
+.ah-head { margin-bottom: var(--ah-space-m); }
+.ah-spread {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ah-space-s);
+  flex-wrap: wrap;
+}
+.ah-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  margin: 0 0 0.4rem;
+  font-family: var(--ah-font-mono);
+  font-size: var(--ah-step--2);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ah-dim);
+}
+.ah-eyebrow::before {
+  content: "";
+  width: 1.8em;
+  height: 2px;
+  background: var(--ah-c1);
+}
+.ah-h2 {
+  margin: 0;
+  font-family: var(--ah-font-display);
+  font-size: var(--ah-step-4);
+  font-weight: 500;
+  line-height: 1.06;
+  letter-spacing: -0.02em;
+}
+.ah-thin {
+  font-weight: 300;
+  color: var(--ah-dim);
+}
+
+/* ===== 六、文章卡片 ===== */
+.ah-grid {
+  display: grid;
+  gap: var(--ah-space-m);
+  grid-template-columns: minmax(0, 1fr);
+}
+.ah-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--ah-line);
+  border-radius: var(--ah-radius-l);
+  background: var(--glass-surface, var(--ah-surface));
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  -webkit-backdrop-filter: var(--glass-filter, none);
+  backdrop-filter: var(--glass-filter, none);
+  overflow: hidden;
+  isolation: isolate;
+  transition: border-color var(--ah-dur) var(--ah-ease-out),
+    transform var(--ah-dur) var(--ah-ease-out),
+    box-shadow var(--ah-dur) var(--ah-ease-out);
+}
+.ah-card:hover {
+  border-color: var(--ah-line-strong);
+  box-shadow: var(--ah-shadow);
+}
+.ah-card-link { position: absolute; inset: 0; z-index: 3; }
+
+/* 封面：一道按当前配色算出来的渐变（没有位图）。
+   角度按卡片序号错开，避免每张卡看起来是同一块布。 */
+.ah-card-media {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  background: linear-gradient(
+    var(--ah-angle, 105deg),
+    var(--ah-c1) 0%,
+    var(--ah-c2) 54%,
+    var(--ah-c3) 100%
+  );
+}
+.ah-card-media::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    200deg,
+    rgba(255, 255, 255, 0.22),
+    transparent 46%,
+    rgba(0, 0, 0, 0.28)
+  );
+  mix-blend-mode: overlay;
+}
+.ah-card-lines {
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(
+    115deg,
+    rgba(255, 255, 255, 0.16) 0 2px,
+    transparent 2px 12px
+  );
+  opacity: 0.7;
+}
+.ah-card-num {
+  position: absolute;
+  left: 1rem;
+  bottom: 0.7rem;
+  z-index: 1;
+  font-family: var(--ah-font-display);
+  font-size: var(--ah-step-4);
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.86);
+  mix-blend-mode: overlay;
+}
+.ah-card-body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: var(--ah-space-m);
+}
+.ah-card-cat {
+  margin: 0;
+  font-family: var(--ah-font-mono);
+  font-size: var(--ah-step--2);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ah-c1);
+}
+.ah-card-title {
+  margin: 0;
+  font-family: var(--ah-font-display);
+  font-size: var(--ah-step-2);
+  font-weight: 500;
+  line-height: 1.14;
+  letter-spacing: -0.01em;
+}
+.ah-card-excerpt {
+  margin: 0;
+  color: var(--ah-dim);
+  font-size: var(--ah-step--1);
+  line-height: 1.6;
+}
+.ah-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: auto 0 0;
+  padding-top: var(--ah-space-2xs);
+  font-family: var(--ah-font-mono);
+  font-size: var(--ah-step--2);
+  letter-spacing: 0.08em;
+  color: var(--ah-dim);
+}
+/* 首篇放大：占两列，封面更宽，标题更大 */
+.ah-card.is-feature .ah-card-media { aspect-ratio: 21 / 9; }
+.ah-card.is-feature .ah-card-title { font-size: var(--ah-step-3); }
+.ah-flag {
+  padding: 0 0.45em;
+  border: 1px solid var(--ah-line-strong);
+  border-radius: var(--ah-radius-pill);
+}
+
+/* ===== 七、数据栏 / 引文 / 结构清单 ===== */
+.ah-rail {
+  display: grid;
+  gap: var(--ah-space-l);
+  grid-template-columns: minmax(0, 1fr);
+}
+.ah-quote {
+  padding-block: var(--ah-space-l);
+  border-block: 1px solid var(--ah-line);
+}
+.ah-quote p {
+  max-width: 30ch;
+  margin: 0;
+  font-family: var(--ah-font-display);
+  font-size: var(--ah-step-3);
+  font-weight: 300;
+  line-height: 1.24;
+}
+.ah-quote cite {
+  display: block;
+  margin-top: var(--ah-space-s);
+  font-family: var(--ah-font-mono);
+  font-size: var(--ah-step--2);
+  font-style: normal;
+  letter-spacing: 0.16em;
+  color: var(--ah-dim);
+}
+.ah-stack > * + * { margin-top: var(--ah-space-s); }
+.ah-cluster {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ah-space-2xs);
+}
+.ah-stats { gap: var(--ah-space-l); }
+.ah-stat { display: grid; gap: 0.2rem; }
+.ah-stat-value {
+  font-family: var(--ah-font-display);
+  font-size: var(--ah-step-4);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.ah-stat-label {
+  font-family: var(--ah-font-mono);
+  font-size: var(--ah-step--2);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ah-dim);
+}
+.ah-divider {
+  height: 1px;
+  background: var(--ah-line);
+}
+.ah-label {
+  margin: 0;
+  font-family: var(--ah-font-mono);
+  font-size: var(--ah-step--2);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ah-dim);
+}
+.ah-list {
+  margin: 0;
+  padding-left: 1.15em;
+  color: var(--ah-dim);
+  font-size: var(--ah-step--1);
+  line-height: 1.7;
+}
+.ah-list li + li { margin-top: 0.35em; }
+.ah-list li::marker { color: var(--ah-c1); font-family: var(--ah-font-mono); }
+.ah-lede {
+  max-width: 46ch;
+  margin: 0;
+  color: var(--ah-dim);
+  font-size: var(--ah-step-1);
+  line-height: 1.6;
+}
+.ah-note {
+  margin: 0;
+  color: var(--ah-dim);
+  font-size: var(--ah-step--2);
+}
+.ah-accent { color: var(--ah-c1); }
+
+/* ===== 八、配色网格 =====
+   八套玻璃配色：点一下就是把 skin 设为 aesthetics、skinpalette 设为该套，
+   所以这里是「主动换肤」的入口，也是上一版设计里最像开关的一块。 */
+.ah-palette-grid {
+  display: grid;
+  gap: 0.6rem;
+  grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+}
+.ah-palette-card {
+  position: relative;
+  padding: 0.7rem;
+  border: 1px solid var(--ah-line);
+  border-radius: var(--ah-radius-m);
+  background: var(--glass-surface, var(--ah-surface));
+  -webkit-backdrop-filter: var(--glass-filter, none);
+  backdrop-filter: var(--glass-filter, none);
+  color: inherit;
+  text-align: left;
+  overflow: hidden;
+  transition: transform var(--ah-dur-fast) var(--ah-ease-spring),
+    border-color var(--ah-dur-fast) var(--ah-ease-out);
+}
+.ah-palette-card:hover { transform: translateY(-3px); }
+.ah-palette-card.is-current { border-color: var(--ah-text); }
+.ah-palette-card.is-current::after {
+  content: "✓";
+  position: absolute;
+  top: 0.45rem;
+  right: 0.6rem;
+  font-size: 0.8rem;
+  color: var(--ah-text);
+}
+.ah-swatches { display: flex; gap: 3px; margin-bottom: 0.5rem; }
+.ah-swatches i {
+  display: block;
+  height: 26px;
+  flex: 1;
+  border-radius: 4px;
+  transform-origin: bottom;
+  transition: transform var(--ah-dur) var(--ah-ease-spring);
+}
+.ah-palette-card:hover .ah-swatches i:nth-child(1) { transform: scaleY(1.25); }
+.ah-palette-card:hover .ah-swatches i:nth-child(2) {
+  transform: scaleY(1.12);
+  transition-delay: 0.04s;
+}
+.ah-palette-card:hover .ah-swatches i:nth-child(3) {
+  transform: scaleY(1.35);
+  transition-delay: 0.08s;
+}
+.ah-palette-name {
+  display: block;
+  font-size: var(--ah-step--1);
+  font-weight: 600;
+}
+.ah-palette-mood {
+  display: block;
+  font-family: var(--ah-font-mono);
+  font-size: var(--ah-step--2);
+  letter-spacing: 0.08em;
+  color: var(--ah-dim);
+}
+
+/* ===== 九、最近更新列表 ===== */
+.ah-updates {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ah-update {
+  display: flex;
+  align-items: baseline;
+  gap: 0.9rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid transparent;
+  border-radius: var(--ah-radius-m);
+  transition: background-color var(--ah-dur-fast) var(--ah-ease-out),
+    border-color var(--ah-dur-fast) var(--ah-ease-out);
+}
+.ah-update:hover {
+  border-color: var(--ah-line);
+  background: var(--glass-surface, var(--ah-surface));
+}
+.ah-update-date {
+  flex: 0 0 auto;
+  font-family: var(--ah-font-mono);
+  font-size: var(--ah-step--2);
+  letter-spacing: 0.06em;
+  color: var(--ah-dim);
+  font-variant-numeric: tabular-nums;
+}
+.ah-update-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: var(--ah-step--1);
+  overflow-wrap: anywhere;
+}
+.ah-update-tag {
+  flex: 0 0 auto;
+  padding: 0 0.5em;
+  border-radius: var(--ah-radius-pill);
+  background: var(--ah-c1);
+  color: var(--ah-on-c1);
+  font-family: var(--ah-font-mono);
+  font-size: var(--ah-step--2);
+  letter-spacing: 0.1em;
+}
+
+/* ===== 十、入场动效 ===== */
+[data-ah-reveal] {
+  opacity: 0;
+  transform: translate3d(0, 26px, 0);
+  transition: opacity 0.66s var(--ah-ease-out) var(--d, 0s),
+    transform 0.78s var(--ah-ease-out) var(--d, 0s);
+}
+[data-ah-reveal="fade"] { transform: none; }
+[data-ah-reveal="scale"] { transform: scale(0.96); }
+[data-ah-reveal].is-in {
+  opacity: 1;
+  transform: none;
+}
+
+@keyframes ah-text-rise {
+  from { transform: translateY(105%) rotate(4deg); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+@keyframes ah-marquee-slide {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-100%, 0, 0); }
+}
+@keyframes ah-cue-scan {
+  0% { transform: translateX(-100%); }
+  60% { transform: translateX(0); }
+  100% { transform: translateX(100%); }
+}
+@keyframes ah-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.6); opacity: 0.4; }
+}
+
+/* ===== 十一、断点 ===== */
+@media (min-width: 48rem) {
+  .ah-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ah-card.is-feature { grid-column: span 2; }
+  .ah-rail { grid-template-columns: 1.35fr 1fr; align-items: start; }
+}
+@media (min-width: 62rem) {
+  .ah-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .ah-card.is-feature { grid-column: span 2; }
+}
+
+/* ===== 十二、降级与无障碍 =====
+   动画强度=关闭 / 系统减少动效：逐字上升与跑马灯直接定格成品外观，
+   滚动揭示全部显示，绝不出现「内容永远隐形」。 */
+html[data-motion="off"] .ah-word,
+html[data-motion="off"] .ah-live i,
+html[data-motion="off"] .ah-cue-line::after { animation: none; }
+html[data-motion="off"] .ah-word { transform: none; opacity: 1; }
+html[data-motion="off"] .ah-marquee-track { animation: none; }
+html[data-motion="off"] [data-ah-reveal] {
+  opacity: 1;
+  transform: none;
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ah-word { animation: none; transform: none; opacity: 1; }
+  .ah-marquee-track { animation: none; }
+  .ah-live i,
+  .ah-cue-line::after { animation: none; }
+  [data-ah-reveal] { opacity: 1; transform: none; transition: none; }
+}
+
+/* 不支持 backdrop-filter 的内核（老 Android WebView / Safari 13 一类）：
+   卡片与配色卡退成实色底，和 aesthetics.css 的降级口径一致。 */
+@supports not ((backdrop-filter: blur(4px)) or (-webkit-backdrop-filter: blur(4px))) {
+  .ah-card,
+  .ah-palette-card { backdrop-filter: none; }
+}
+
+.ah :focus-visible {
+  outline: 2px solid var(--ah-c1);
+  outline-offset: 3px;
+  border-radius: var(--ah-radius-s);
+}
+
+/* ===== 十三、打印：只留内容，去掉跑马灯与动效 ===== */
+@media print {
+  .ah-marquee-band { display: none; }
+  .ah-card,
+  .ah-palette-card { background: none; border-color: #ccc; }
+  .ah-hero { padding-block: 0; }
+}

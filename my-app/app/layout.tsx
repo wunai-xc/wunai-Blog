@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./aesthetics.css";
+import "./aesthetics-home.css";
 import { SITE } from "@/lib/content";
 import RouteLoading from "@/components/RouteLoading";
 import InteractiveBackground from "@/components/InteractiveBackground";
@@ -59,11 +60,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     var m = localStorage.getItem('motion');
     if (m) el.setAttribute('data-motion', m);
 
-    /* 第二套主题（液态玻璃）。skin 只在 aesthetics 时写属性，paper 不写、走 globals.css 的默认。
+    /* 主题（第二套视觉：液态玻璃）：现在默认就是玻璃，所以 key 缺失时按玻璃处理，
+       只有明确存过 'paper' 的浏览器才回到纸质 —— 与 lib/settings.ts 的 DEFAULTS.skin
+       保持一致（纸质保留为回退选项，不删）。
        skinpalette 在玻璃主题里必须有值 —— aesthetics.css 没有兜底配色（写了属性但没有
-       匹配的配色规则，卡片会退回纸质色），所以缺失时补上默认值，与 lib/settings.ts 的
-       DEFAULTS.skinPalette 保持一致。 */
-    if (localStorage.getItem('skin') === 'aesthetics') {
+       匹配的配色规则，卡片会退回纸质色），所以缺失时补上默认值，与 DEFAULTS.skinPalette 一致。 */
+    if ((localStorage.getItem('skin') || 'aesthetics') === 'aesthetics') {
       el.setAttribute('data-theme', 'aesthetics');
       el.setAttribute('data-skin-palette', localStorage.getItem('skinpalette') || 'void');
     }
