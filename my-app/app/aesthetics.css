@@ -266,7 +266,9 @@ html[data-theme="aesthetics"] .page-indicator .page-dot.active {
 }
 
 /* ===== 五、顶栏与页脚 =====
-   顶栏本来就是半透明 + 虚化的，玻璃主题把它调厚一档，页脚对齐同一材质。 */
+   顶栏本来就是半透明 + 虚化的，玻璃主题把它调厚一档，页脚对齐同一材质。
+   注意类名：页脚的根元素是 <footer class="site-footer">（components/Footer.tsx），
+   不是 .footer —— 写错就整条规则不生效。 */
 html[data-theme="aesthetics"] .site-header {
   background: color-mix(in srgb, var(--bg) 72%, transparent);
   border-bottom-color: var(--glass-edge);
@@ -287,7 +289,7 @@ html[data-theme="aesthetics"] .friends-link {
 html[data-theme="aesthetics"] .friends-link:hover {
   color: var(--aes-1);
 }
-html[data-theme="aesthetics"] .footer {
+html[data-theme="aesthetics"] .site-footer {
   background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--bg-2) 70%, transparent));
   border-top-color: var(--glass-edge);
 }
