@@ -11,6 +11,19 @@ export type ReadWidth = "narrow" | "normal" | "wide";
 export type BgMode = "full" | "dim" | "off";
 export type Motion = "full" | "lite" | "off";
 
+/** 视觉主题：paper=纸质（默认，定义在 app/globals.css）、aesthetics=液态玻璃（app/aesthetics.css） */
+export type Skin = "paper" | "aesthetics";
+/** 玻璃主题的八套配色，前四套深色、后四套浅色；取值定义在 app/aesthetics.css */
+export type SkinPaletteId =
+  | "void"
+  | "bloom"
+  | "ember"
+  | "abyss"
+  | "solar"
+  | "riso"
+  | "porcelain"
+  | "mint";
+
 export interface PaletteOption {
   id: Exclude<PaletteId, "custom">;
   /** 预览色块用的颜色，与 globals.css 里 html[data-palette=…] 的取值保持一致 */
@@ -30,6 +43,25 @@ export const PALETTES: PaletteOption[] = [
 export const READ_WIDTHS: ReadWidth[] = ["narrow", "normal", "wide"];
 export const BG_MODES: BgMode[] = ["full", "dim", "off"];
 export const MOTIONS: Motion[] = ["full", "lite", "off"];
+export const SKINS: Skin[] = ["paper", "aesthetics"];
+
+export interface SkinPaletteOption {
+  id: SkinPaletteId;
+  /** 预览色块用的颜色，与 app/aesthetics.css 里该配色 --aes-1 的取值保持一致 */
+  swatch: string;
+}
+
+/** 玻璃主题的八套配色。真正的颜色定义在 app/aesthetics.css（声明式、切主题不闪），这里只用于取数 */
+export const SKIN_PALETTES: SkinPaletteOption[] = [
+  { id: "void", swatch: "#c8ff2f" },
+  { id: "bloom", swatch: "#ff2fb9" },
+  { id: "ember", swatch: "#ff6a13" },
+  { id: "abyss", swatch: "#14f1c8" },
+  { id: "solar", swatch: "#ff4b1f" },
+  { id: "riso", swatch: "#ff5c8a" },
+  { id: "porcelain", swatch: "#4a3aff" },
+  { id: "mint", swatch: "#0f9d63" },
+];
 
 export const DEFAULTS = {
   palette: "blue" as PaletteId,
@@ -37,6 +69,8 @@ export const DEFAULTS = {
   bgMode: "full" as BgMode,
   acrylic: true,
   motion: "full" as Motion,
+  skin: "paper" as Skin,
+  skinPalette: "void" as SkinPaletteId,
 };
 
 /** localStorage 键名。内联脚本里用的是同样的字符串，改这里要同步改 layout.tsx */
@@ -46,6 +80,8 @@ export const KEYS = {
   bgMode: "bgmode",
   acrylic: "acrylic",
   motion: "motion",
+  skin: "skin",
+  skinPalette: "skinpalette",
   accentLight: "accentL",
   accentDark: "accentD",
 } as const;
