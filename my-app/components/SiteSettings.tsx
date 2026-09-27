@@ -9,6 +9,8 @@ import {
   READ_WIDTHS,
   BG_MODES,
   MOTIONS,
+  SKINS,
+  SKIN_PALETTES,
   DEFAULTS,
   KEYS,
   deriveAccents,
@@ -16,6 +18,8 @@ import {
   type ReadWidth,
   type BgMode,
   type Motion,
+  type Skin,
+  type SkinPaletteId,
 } from "@/lib/settings";
 
 type State = {
@@ -26,6 +30,8 @@ type State = {
   bgMode: BgMode;
   acrylic: boolean;
   motion: Motion;
+  skin: Skin;
+  skinPalette: SkinPaletteId;
 };
 
 /** 只读 localStorage 的当前值；缺失则回落到默认值 */
@@ -48,6 +54,8 @@ function readState(): State {
     bgMode: (get(KEYS.bgMode) as BgMode) || DEFAULTS.bgMode,
     acrylic: get(KEYS.acrylic) !== "off",
     motion: (get(KEYS.motion) as Motion) || DEFAULTS.motion,
+    skin: (get(KEYS.skin) as Skin) || DEFAULTS.skin,
+    skinPalette: (get(KEYS.skinPalette) as SkinPaletteId) || DEFAULTS.skinPalette,
   };
 }
 
@@ -55,9 +63,19 @@ function readState(): State {
  * 把所有设置同步到 <html>。
  * 与 app/layout.tsx 的内联引导脚本用的是同一套键名与属性名，两者必须一致。
  * 行内变量只在自定义配色时写入，切回预设要移除，避免残留污染其他方案。
+ *
+ * 主题：只在 aesthetics 时写 data-theme / data-skin-palette，切回 paper 时移除 ——
+ * 与 layout.tsx 内联脚本的写法保持一致，别在纸质主题下留一个没人认的属性值。
  */
 function applyToDom(s: State) {
   const el = document.documentElement;
+  if (s.skin === "aesthetics") {
+    el.setAttribute("data-theme", "aesthetics");
+    el.setAttribute("data-skin-palette", s.skinPalette);
+  } else {
+    el.removeAttribute("data-theme");
+    el.removeAttribute("data-skin-palette");
+  }
   el.setAttribute("data-palette", s.palette);
   el.setAttribute("data-width", s.readWidth);
   el.setAttribute("data-bg", s.bgMode);
@@ -80,6 +98,8 @@ const DEFAULT_STATE: State = {
   bgMode: DEFAULTS.bgMode,
   acrylic: DEFAULTS.acrylic,
   motion: DEFAULTS.motion,
+  skin: DEFAULTS.skin,
+  skinPalette: DEFAULTS.skinPalette,
 };
 
 export default function SiteSettings({ lang }: { lang: Lang }) {
@@ -104,6 +124,8 @@ export default function SiteSettings({ lang }: { lang: Lang }) {
       localStorage.setItem(KEYS.bgMode, next.bgMode);
       localStorage.setItem(KEYS.acrylic, next.acrylic ? "on" : "off");
       localStorage.setItem(KEYS.motion, next.motion);
+      localStorage.setItem(KEYS.skin, next.skin);
+      localStorage.setItem(KEYS.skinPalette, next.skinPalette);
     } catch {
       /* 隐私模式下写盘可能失败，界面照常工作 */
     }
@@ -127,6 +149,10 @@ export default function SiteSettings({ lang }: { lang: Lang }) {
     applyToDom(DEFAULT_STATE);
   }
 
+  // 首帧 s 为 null，用默认值决定显示哪一组配色（随后被真实值覆盖）
+  const skin = s?.skin ?? DEFAULTS.skin;
+  const skinPalette = s?.skinPalette ?? DEFAULTS.skinPalette;
+
   const widthLabel: Record<ReadWidth, string> = {
     narrow: t.widthNarrow,
     normal: t.widthNormal,
@@ -141,6 +167,10 @@ export default function SiteSettings({ lang }: { lang: Lang }) {
     full: t.motionFull,
     lite: t.motionLite,
     off: t.motionOff,
+  };
+  const skinLabel: Record<Skin, string> = {
+    paper: t.skinPaper,
+    aesthetics: t.skinAesthetics,
   };
 
   /* key 必须由调用方给：下面几个 .map 都会渲染成列表 */
@@ -166,52 +196,89 @@ export default function SiteSettings({ lang }: { lang: Lang }) {
 
       <section className="settings-panel">
         <span className="settings-label">
-          <Icon icon={icons["mdi:palette-outline"]} width="1em" height="1em" /> {t.palette}
+          <Icon icon={icons["mdi:theme-light-dark"]} width="1em" height="1em" /> {t.skinLabel}
         </span>
-        <div className="settings-swatches">
-          {PALETTES.map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              className="settings-swatch"
-              aria-pressed={s?.palette === p.id}
-              aria-label={p.id}
-              title={p.id}
-              onClick={() => update({ palette: p.id })}
-            >
-              <span style={{ background: p.swatch }} />
-            </button>
-          ))}
-
-          {/* 自定义：取色器 + 换算后的实际色块，两者一起给用户看到"最终会变成什么颜色" */}
-          <input
-            type="color"
-            className="settings-color"
-            aria-label={t.customAccent}
-            title={t.customAccent}
-            value={s?.customLight || DEFAULT_STATE.customLight}
-            onChange={(e) => pickCustom(e.target.value)}
-          />
-          <button
-            type="button"
-            className="settings-opt"
-            aria-pressed={s?.palette === "custom"}
-            onClick={() => s && update({ palette: "custom" })}
-          >
-            <Icon icon={icons["mdi:check"]} className="opt-check" width="1em" height="1em" />
-            <span
-              aria-hidden="true"
-              style={{
-                width: "0.8em",
-                height: "0.8em",
-                display: "inline-block",
-                background: s?.customLight || DEFAULT_STATE.customLight,
-              }}
-            />
-            {t.paletteCustom}
-          </button>
+        <div className="settings-row">
+          {SKINS.map((k) =>
+            opt(k, skin === k, skinLabel[k], () => update({ skin: k }))
+          )}
         </div>
+        {skin === "aesthetics" && <p className="settings-hint">{t.skinHint}</p>}
       </section>
+
+      {/* 两套主题的配色分开存、各显示各的：玻璃主题下不显示纸质配色，
+          因为那时 --accent 由 data-skin-palette 决定，纸质配色点不动也看不见。 */}
+      {skin === "aesthetics" ? (
+        <section className="settings-panel">
+          <span className="settings-label">
+            <Icon icon={icons["mdi:palette-outline"]} width="1em" height="1em" /> {t.skinPalette}
+          </span>
+          <div className="settings-swatches">
+            {SKIN_PALETTES.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                className="settings-swatch"
+                aria-pressed={skinPalette === p.id}
+                aria-label={p.id}
+                title={p.id}
+                onClick={() => update({ skinPalette: p.id })}
+              >
+                <span style={{ background: p.swatch }} />
+              </button>
+            ))}
+          </div>
+        </section>
+      ) : (
+        <section className="settings-panel">
+          <span className="settings-label">
+            <Icon icon={icons["mdi:palette-outline"]} width="1em" height="1em" /> {t.palette}
+          </span>
+          <div className="settings-swatches">
+            {PALETTES.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                className="settings-swatch"
+                aria-pressed={s?.palette === p.id}
+                aria-label={p.id}
+                title={p.id}
+                onClick={() => update({ palette: p.id })}
+              >
+                <span style={{ background: p.swatch }} />
+              </button>
+            ))}
+
+            {/* 自定义：取色器 + 换算后的实际色块，两者一起给用户看到"最终会变成什么颜色" */}
+            <input
+              type="color"
+              className="settings-color"
+              aria-label={t.customAccent}
+              title={t.customAccent}
+              value={s?.customLight || DEFAULT_STATE.customLight}
+              onChange={(e) => pickCustom(e.target.value)}
+            />
+            <button
+              type="button"
+              className="settings-opt"
+              aria-pressed={s?.palette === "custom"}
+              onClick={() => s && update({ palette: "custom" })}
+            >
+              <Icon icon={icons["mdi:check"]} className="opt-check" width="1em" height="1em" />
+              <span
+                aria-hidden="true"
+                style={{
+                  width: "0.8em",
+                  height: "0.8em",
+                  display: "inline-block",
+                  background: s?.customLight || DEFAULT_STATE.customLight,
+                }}
+              />
+              {t.paletteCustom}
+            </button>
+          </div>
+        </section>
+      )}
 
       <section className="settings-panel">
         <span className="settings-label">{t.readWidth}</span>

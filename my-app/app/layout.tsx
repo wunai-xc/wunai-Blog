@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./aesthetics.css";
 import { SITE } from "@/lib/content";
 import RouteLoading from "@/components/RouteLoading";
 import InteractiveBackground from "@/components/InteractiveBackground";
@@ -58,6 +59,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     var m = localStorage.getItem('motion');
     if (m) el.setAttribute('data-motion', m);
 
+    /* 第二套主题（液态玻璃）。skin 只在 aesthetics 时写属性，paper 不写、走 globals.css 的默认。
+       skinpalette 在玻璃主题里必须有值 —— aesthetics.css 没有兜底配色（写了属性但没有
+       匹配的配色规则，卡片会退回纸质色），所以缺失时补上默认值，与 lib/settings.ts 的
+       DEFAULTS.skinPalette 保持一致。 */
+    if (localStorage.getItem('skin') === 'aesthetics') {
+      el.setAttribute('data-theme', 'aesthetics');
+      el.setAttribute('data-skin-palette', localStorage.getItem('skinpalette') || 'void');
+    }
+
     /* 文章正文字号：值只在文章详情页生效（CSS 里限定在 .post-content[data-article-font]
        内部消费），但写在 <html> 上，这样首次绘制前就能放好，不会先画一遍默认字号。
        键名与 components/ArticleFontSize.tsx 一致。 */
@@ -110,7 +120,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="alternate" type="application/rss+xml" title="wunai's blog RSS" href="/rss.xml" />
       </head>
       <body>
-        {/* 动态可互动背景：固定铺满视口、位于所有内容之下 */}
+        {/* 动态可互动背景：固定铺满视口、位于所有内容之下。
+            玻璃主题里这张点阵 canvas 被 aesthetics.css 关掉，换成氛围光 + 颗粒。 */}
         <InteractiveBackground />
 
         {/* ===== SVG 滤镜定义（全局复用） ===== */}
