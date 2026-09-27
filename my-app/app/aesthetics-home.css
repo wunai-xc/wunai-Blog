@@ -386,7 +386,7 @@
    卡片本体抬到 z-index 1 并撑满整格 —— 外壳被栅格拉高时卡片跟着填满，
    光板则留在卡片身后（伪元素永远画在元素自己的背景之上，所以光板必须
    画在外壳上，画在 .ah-card 上会盖住封面与文字）。
-   灯板与方块见下面「斜切光板」一段。 */
+   光板与方块见下面「斜切光板」一段。 */
 .ah-card-glow {
   position: relative;
   border-radius: var(--ah-radius-l);
@@ -919,7 +919,7 @@ html[data-motion="off"] .ah-card-spark::after { animation: none; }
   .ah-marquee-band { display: none; }
   .ah-card,
   .ah-palette-card { background: none; border-color: #ccc; }
-  /* 光板与小方块是装饰，且会被印成两大块色卡 */
+  /* 光板与小方块是装饰，打印时没必要印出两块大色卡 */
   .ah-card-glow::before,
   .ah-card-glow::after,
   .ah-card-spark { display: none; }

@@ -119,10 +119,7 @@ function PostCard({
           href={`/${lang}/posts/${encodeURIComponent(post.slug)}/`}
           aria-label={post.title}
         />
-        <div
-          className={`ah-card-media${image ? " has-image" : ""}`}
-          style={{ "--ah-angle": angle } as CSSVars}
-        >
+        <div className="ah-card-media" style={{ "--ah-angle": angle } as CSSVars}>
           {image ? (
             /* 图片可能是任意域名，用原生 img（next/image 需预声明 remotePatterns）；
                referrerPolicy="no-referrer" 与纸质主题的缩略图一致，避免图床拦外链。 */
