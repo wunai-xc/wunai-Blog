@@ -20,12 +20,44 @@ function Label({ icon, children }: { icon: keyof typeof icons; children: ReactNo
   );
 }
 
+/**
+ * 页脚跑马灯带（第二套视觉）。
+ *
+ * 两条一模一样的轨道首尾相接，所以循环处不会露空隙（只放一条会在末尾留空）。
+ * 轨道规则直接复用 app/aesthetics-home.css 里的 .ah-marquee / .ah-marquee-track，
+ * 页脚只需补上它依赖的几个 --ah-* 变量（见 app/aesthetics-shell.css 的注释）。
+ *
+ * 纯装饰：整体 aria-hidden，屏阅器不会读出一串重复的词。
+ */
+function FooterMarquee({ items }: { items: string[] }) {
+  const track = (key: string, hidden: boolean) => (
+    <div className="ah-marquee-track" key={key} aria-hidden={hidden ? "true" : undefined}>
+      {items.map((item, i) => (
+        <span key={i} aria-hidden={i % 2 === 1 ? "true" : undefined}>
+          {item}
+        </span>
+      ))}
+    </div>
+  );
+  return (
+    <div className="footer-marquee" aria-hidden="true">
+      <div className="ah-marquee">
+        {track("a", false)}
+        {track("b", true)}
+      </div>
+    </div>
+  );
+}
+
 export default function Footer({ lang }: { lang: Lang }) {
   const t = SITE.i18n[lang];
   const c = SITE.contact;
 
   return (
     <footer className="site-footer">
+      {/* 跑马灯带：与首页首屏同一种滑动观感（短语也同一组，见 lib/site.ts */}
+      <FooterMarquee items={t.homeMarquee} />
+
       <div className="footer-inner">
         <p className="footer-label">{t.contactLabel}</p>
         <p className="footer-body">{t.contactBody}</p>
